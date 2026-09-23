@@ -4,6 +4,7 @@ import { ConfigManager } from './ConfigManager.js';
 import type { IDependencyReport } from '@nazzel/domain/types.js';
 import { request } from 'http';
 import { request as httpsRequest } from 'https';
+import * as path from 'path';
 
 export interface IDiagnosticsReport {
   dependencies: IDependencyReport;
@@ -79,7 +80,7 @@ export class DiagnosticsRunner {
     // Check history
     const historyResult: IDiagnosticsReport['history'] = { status: 'ok', path: this.historyPath, details: '' };
     try {
-      await this.fileSystem.ensureDir(this.historyPath.substring(0, this.historyPath.lastIndexOf('/')));
+      await this.fileSystem.ensureDir(path.dirname(this.historyPath));
     } catch (e: any) {
       historyResult.status = 'error';
       historyResult.details = 'Cannot write to history directory: ' + e.message;

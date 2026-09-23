@@ -2,6 +2,9 @@ import { createCompositionRoot } from '../CompositionRoot.js';
 import { initLogger } from '@nazzel/shared/logger.js';
 import { AppError } from '@nazzel/domain/errors.js';
 import type { IDownloadRequest } from '@nazzel/domain/types.js';
+import React from 'react';
+import { render } from 'ink';
+import { App } from '../../tui/App.js';
 
 export async function downloadCommand(url: string | undefined, options: any) {
   if (options.tui === false) {
@@ -49,10 +52,15 @@ export async function downloadCommand(url: string | undefined, options: any) {
 
   } else {
     // TUI Mode (Phase 4)
-    initLogger({ level: 'info', tui: true });
-    
-    // For Phase 3, we just throw/log that TUI is not implemented
-    process.stdout.write('TUI Mode is not yet implemented (Phase 4). Please use --no-tui for machine-readable mode.\n');
-    process.exitCode = 0;
+    initLogger({ level: 'error', tui: true });
+    const root = await createCompositionRoot();
+
+    return new Promise<void>((resolve, reject) => {
+      const { waitUntilExit } = render(React.createElement(App, { root, initialUrl: url }));
+
+      waitUntilExit().then(() => {
+        resolve();
+      }).catch(reject);
+    });
   }
 }

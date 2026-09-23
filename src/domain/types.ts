@@ -93,8 +93,8 @@ export interface IDownloadProgress {
   readonly total: number | null;
   /** Fragment progress for fragmented downloads */
   readonly fragment?: { readonly current: number; readonly total: number };
-  /** Which phase: downloading or merging/converting */
-  readonly phase: 'downloading' | 'merging' | 'converting';
+  /** Which phase: downloading, merging/converting, or verifying */
+  readonly phase: 'downloading' | 'merging' | 'converting' | 'verifying';
 }
 
 /** The successful outcome of a completed download. */

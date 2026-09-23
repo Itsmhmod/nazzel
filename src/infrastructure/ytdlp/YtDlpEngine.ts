@@ -87,6 +87,17 @@ export class YtDlpEngine implements IMediaEngine {
     
     if (this.ffprobeRunner && filePath !== 'unknown') {
       try {
+        // Yield verification phase event
+        yield {
+          downloadId: request.url,
+          percent: 100,
+          speed: null,
+          eta: null,
+          downloaded: finalMetadata.filesize || finalMetadata.filesize_approx || 0,
+          total: finalMetadata.filesize || finalMetadata.filesize_approx || 0,
+          phase: 'verifying'
+        };
+
         const probe = await this.ffprobeRunner.probe(filePath, signal);
         verified = !!probe.formatName;
         finalMetadata.duration = probe.duration || finalMetadata.duration;

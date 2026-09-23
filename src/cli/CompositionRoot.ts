@@ -12,6 +12,8 @@ import { DownloadOrchestrator } from '@nazzel/application/DownloadOrchestrator.j
 import { FfprobeRunner } from '@nazzel/infrastructure/ffmpeg/FfprobeRunner.js';
 import { DiagnosticsRunner } from '@nazzel/application/DiagnosticsRunner.js';
 
+export type CompositionRoot = Awaited<ReturnType<typeof createCompositionRoot>>;
+
 export async function createCompositionRoot(configPath?: string) {
   const fileSystem = new NodeFileSystem();
   const processRunner = new ProcessRunner();
