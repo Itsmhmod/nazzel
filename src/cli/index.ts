@@ -1,52 +1,65 @@
 #!/usr/bin/env node
-/**
- * @fileoverview Nazzel CLI entry point.
- *
- * This file is intentionally minimal for Phase 0.
- * It validates the Node.js version and prints version info.
- * Full command implementation happens in Phase 3.
- */
 
-import { APP_NAME, MIN_NODE_VERSION } from '../domain/constants.js';
+import { createCli } from './cli.js';
+import { initLogger } from '@nazzel/shared/logger.js';
+import { getExitCodeForError, EXIT_CODES } from './exitCodes.js';
 
-// ---------------------------------------------------------------------------
-// Runtime version guard — fail fast before any other imports
-// Uses process.version directly to avoid a semver dependency in Phase 0
-// ---------------------------------------------------------------------------
+async function main() {
+  // Initialize default logger (it may be re-initialized by specific commands like --no-tui)
+  initLogger({ level: 'info', tui: true });
 
-function meetsMinNodeVersion(current: string, min: string): boolean {
-  // Both strings are in the form "vMAJOR.MINOR.PATCH" or "MAJOR.MINOR.PATCH"
-  const parse = (v: string): number[] =>
-    v
-      .replace(/^v/, '')
-      .split('.')
-      .map((n) => parseInt(n, 10));
+  const program = createCli();
 
-  const [cMaj = 0, cMin = 0, cPatch = 0] = parse(current);
-  const [mMaj = 0, mMin = 0, mPatch = 0] = parse(min);
+  try {
+    // Parse arguments and execute command
+    await program.parseAsync(process.argv);
+  } catch (err: any) {
+    // Commander throws errors with specific codes for parsing issues
+    if (err.code === 'commander.helpDisplayed' || err.code === 'commander.version') {
+      process.exitCode = 0;
+      return;
+    }
+    
+    if (err.code === 'commander.unknownOption' || err.code === 'commander.missingArgument' || err.code === 'commander.invalidArgument') {
+      process.exitCode = EXIT_CODES.CLI_INVALID_ARGS;
+      return;
+    }
 
-  if (cMaj !== mMaj) { return cMaj > mMaj; }
-  if (cMin !== mMin) { return cMin > mMin; }
-  return cPatch >= mPatch;
+    process.exitCode = getExitCodeForError(err);
+  }
 }
 
-if (!meetsMinNodeVersion(process.version, MIN_NODE_VERSION)) {
-  process.stderr.write(
-    `${APP_NAME} requires Node.js ${MIN_NODE_VERSION} or higher.\n` +
-      `You are running ${process.version}.\n` +
-      `Please upgrade Node.js: https://nodejs.org\n`,
-  );
-  process.exit(1);
-}
+let isShuttingDown = false;
 
-// ---------------------------------------------------------------------------
-// Main — placeholder for Phase 0
-// Full CLI implementation is Phase 3.
-// ---------------------------------------------------------------------------
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason) => {
+  process.exitCode = getExitCodeForError(reason);
+});
 
-function main(): void {
-  process.stdout.write(`${APP_NAME} v0.1.0 — media downloader (Phase 0 skeleton)\n`);
-  process.stdout.write('Run nazzel --help for usage (available in Phase 3).\n');
-}
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  process.exitCode = getExitCodeForError(error);
+  // Force exit on uncaught exception to avoid undefined state
+  process.exit(process.exitCode);
+});
 
-main();
+// Handle SIGINT (Ctrl+C)
+process.on('SIGINT', () => {
+  if (isShuttingDown) { return; } // Prevent duplicate handling
+  isShuttingDown = true;
+  process.exitCode = EXIT_CODES.CANCELLED;
+  
+  // Try to write NDJSON for the cancellation event if in machine-readable mode
+  process.stdout.write(JSON.stringify({ type: 'PROCESS_INTERRUPTED' }) + '\n');
+  
+  // Give child processes (like yt-dlp) a moment to clean up via their own SIGINT
+  // We fall back to process.exit() if Node doesn't exit naturally after 2 seconds
+  setTimeout(() => {
+    process.exit(process.exitCode);
+  }, 2000).unref();
+});
+
+// Run
+main().catch((err) => {
+  process.exitCode = getExitCodeForError(err);
+});

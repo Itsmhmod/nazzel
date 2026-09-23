@@ -68,7 +68,7 @@ export class DependencyManager implements IDependencyManager {
     const pathsToTry = [
       this.config.ytdlpPath,
       path.join(this.managedBinDir, this.isWindows ? 'yt-dlp.exe' : 'yt-dlp'),
-      this.isWindows ? 'yt-dlp.exe' : 'yt-dlp'
+      'yt-dlp'
     ].filter(Boolean) as string[];
 
     for (const binPath of pathsToTry) {
@@ -96,7 +96,7 @@ export class DependencyManager implements IDependencyManager {
     const minVersion = '5.0.0'; // Example
     const pathsToTry = [
       this.config.ffmpegPath,
-      this.isWindows ? 'ffmpeg.exe' : 'ffmpeg'
+      'ffmpeg'
     ].filter(Boolean) as string[];
 
     for (const binPath of pathsToTry) {
@@ -121,7 +121,7 @@ export class DependencyManager implements IDependencyManager {
     const minVersion = '5.0.0';
     const pathsToTry = [
       this.config.ffprobePath,
-      this.isWindows ? 'ffprobe.exe' : 'ffprobe'
+      'ffprobe'
     ].filter(Boolean) as string[];
 
     for (const binPath of pathsToTry) {
@@ -144,7 +144,7 @@ export class DependencyManager implements IDependencyManager {
 
   private async getVersion(binPath: string, args: string[]): Promise<string | null> {
     try {
-      const result = await this.runner.run({ bin: binPath, args, timeoutMs: 5000 });
+      const result = await this.runner.run({ bin: binPath, args, timeoutMs: 10000 });
       if (result.exitCode === 0) {
         return result.stdout.trim();
       }

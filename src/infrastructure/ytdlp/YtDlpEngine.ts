@@ -14,7 +14,8 @@ export class YtDlpEngine implements IMediaEngine {
 
   constructor(
     private readonly runner: IProcessRunner,
-    private readonly ytdlpBin: string
+    private readonly ytdlpBin: string,
+    private readonly ffprobeRunner?: import('../../application/interfaces/IFfprobeRunner.js').IFfprobeRunner
   ) {}
 
   async analyze(url: string, signal?: AbortSignal): Promise<IMediaInfo> {
@@ -81,12 +82,25 @@ export class YtDlpEngine implements IMediaEngine {
       throw AppError.from('PROCESS_CRASH', new Error('No final metadata returned from yt-dlp'), { url: request.url });
     }
 
+    let verified = false;
+    const filePath = finalMetadata._filename || 'unknown';
+    
+    if (this.ffprobeRunner && filePath !== 'unknown') {
+      try {
+        const probe = await this.ffprobeRunner.probe(filePath, signal);
+        verified = !!probe.formatName;
+        finalMetadata.duration = probe.duration || finalMetadata.duration;
+      } catch {
+        verified = false;
+      }
+    }
+
     return {
       downloadId: request.url,
-      filePath: finalMetadata._filename || 'unknown',
+      filePath,
       fileSize: finalMetadata.filesize || finalMetadata.filesize_approx || 0,
       duration: finalMetadata.duration || null,
-      verified: false,
+      verified,
       completedAt: new Date().toISOString(),
     };
   }
