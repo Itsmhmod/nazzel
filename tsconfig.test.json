@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "noEmit": true,
+    "paths": {
+      "@nazzel/domain/*": ["./src/domain/*"],
+      "@nazzel/shared/*": ["./src/shared/*"],
+      "@nazzel/config/*": ["./src/config/*"],
+      "@nazzel/application/*": ["./src/application/*"],
+      "@nazzel/infrastructure/*": ["./src/infrastructure/*"],
+      "@nazzel/ui/*": ["./src/ui/*"]
+    }
+  },
+  "include": ["src/**/*", "tests/**/*", "vitest.config.ts"],
+  "exclude": ["node_modules", "dist"]
+}

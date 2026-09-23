@@ -1,0 +1,11 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+*.tsbuildinfo
+sea.blob
+nazzel-linux-x64
+nazzel-macos-arm64
+nazzel-win-x64.exe

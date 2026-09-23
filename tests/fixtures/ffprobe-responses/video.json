@@ -1,0 +1,19 @@
+{
+  "format": {
+    "format_name": "mp4",
+    "duration": "120.5",
+    "size": "20500000",
+    "bit_rate": "1332000"
+  },
+  "streams": [
+    {
+      "codec_type": "video",
+      "codec_name": "h264",
+      "width": 1280
+    },
+    {
+      "codec_type": "audio",
+      "channels": 2
+    }
+  ]
+}
