@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { theme } from '../theme.js';
 import { Alert } from '../components/ui/Alert.js';
 import { KeyHint } from '../components/ui/KeyHint.js';
+import { Layout } from '../components/ui/Layout.js';
 import type { IDownloadResult } from '@nazzel/domain/types.js';
 
 export interface CompletedScreenProps {
@@ -36,25 +37,31 @@ export function CompletedScreen({ title, result, onRestart, onQuit }: CompletedS
   });
 
   return (
-    <Box flexDirection="column" marginTop={1}>
-      <Alert type="success" title="Download Complete">
-        <Text color={theme.text} bold>{title}</Text>
-        {result && (
-          <Box flexDirection="column" marginTop={1}>
-            <Text color={theme.muted}>Path: <Text color={theme.text}>{result.filePath}</Text></Text>
-            <Text color={theme.muted}>Size: <Text color={theme.text}>{formatBytes(result.fileSize)}</Text></Text>
-            <Text color={theme.muted}>Duration: <Text color={theme.text}>{formatDuration(result.duration)}</Text></Text>
-            <Text color={theme.muted}>Verified: <Text color={result.verified ? theme.success : theme.error}>{result.verified ? 'Yes' : 'No'}</Text></Text>
-          </Box>
-        )}
-      </Alert>
-
-      <KeyHint
-        keys={[
-          { key: 'Enter/r', label: 'New Download' },
-          { key: 'Esc/q', label: 'Quit' },
-        ]}
-      />
-    </Box>
+    <Layout 
+      title="COMPLETED"
+      subtitle="Download Finished"
+      footer={
+        <KeyHint
+          keys={[
+            { key: 'Enter/r', label: 'New Download' },
+            { key: 'Esc/q', label: 'Quit' },
+          ]}
+        />
+      }
+    >
+      <Box paddingX={2} marginY={1}>
+        <Alert type="success" title="Success">
+          <Text color={theme.text} bold>{title}</Text>
+          {result && (
+            <Box flexDirection="column" marginTop={1}>
+              <Text color={theme.muted}>Path: <Text color={theme.text}>{result.filePath}</Text></Text>
+              <Text color={theme.muted}>Size: <Text color={theme.text}>{formatBytes(result.fileSize)}</Text></Text>
+              <Text color={theme.muted}>Duration: <Text color={theme.text}>{formatDuration(result.duration)}</Text></Text>
+              <Text color={theme.muted}>Verified: <Text color={result.verified ? theme.success : theme.error}>{result.verified ? 'Yes' : 'No'}</Text></Text>
+            </Box>
+          )}
+        </Alert>
+      </Box>
+    </Layout>
   );
 }

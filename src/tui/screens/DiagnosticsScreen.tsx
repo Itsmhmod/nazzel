@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { theme } from '../theme.js';
 import { KeyHint } from '../components/ui/KeyHint.js';
 import { Spinner } from '../components/ui/Spinner.js';
+import { Layout } from '../components/ui/Layout.js';
 import type { IDiagnosticsRunner, IDiagnosticsReport } from '../../application/interfaces/IDiagnosticsRunner.js';
 
 export interface DiagnosticsScreenProps {
@@ -37,45 +38,54 @@ export function DiagnosticsScreen({ runner, onClose }: DiagnosticsScreenProps) {
   }
 
   return (
-    <Box flexDirection="column" marginTop={1} paddingX={1} borderStyle="round" borderColor={report.dependencies.allOk ? theme.success : theme.error}>
-      <Box marginBottom={1}>
-        <Text bold color={theme.text}>System Diagnostics</Text>
-      </Box>
+    <Layout 
+      title="DIAGNOSTICS"
+      subtitle="System Health"
+      footer={
+        <KeyHint
+          keys={[
+            { key: 'Esc/d', label: 'Close' },
+          ]}
+        />
+      }
+    >
+      <Box flexDirection="column" paddingX={2} marginY={1}>
+        <Box marginBottom={1} borderStyle="single" borderColor={report.dependencies.allOk ? theme.success : theme.error} padding={1}>
+          <Text bold color={theme.text}>Overall Health: </Text>
+          <Text color={report.dependencies.allOk ? theme.success : theme.error}>
+            {report.dependencies.allOk ? 'OK' : 'ISSUES DETECTED'}
+          </Text>
+        </Box>
 
-      {report.dependencies.deps.map((dep) => {
-        let statusColor: string = theme.success;
-        if (dep.status === 'missing') {
-          statusColor = theme.error;
-        }
-        if (dep.status === 'outdated') {
-          statusColor = theme.warning;
-        }
-        if (dep.status === 'unknown') {
-          statusColor = theme.muted;
-        }
+        {report.dependencies.deps.map((dep) => {
+          let statusColor: string = theme.success;
+          if (dep.status === 'missing') {
+            statusColor = theme.error;
+          }
+          if (dep.status === 'outdated') {
+            statusColor = theme.warning;
+          }
+          if (dep.status === 'unknown') {
+            statusColor = theme.muted;
+          }
 
-        return (
-          <Box key={dep.name} flexDirection="column" marginBottom={1}>
-            <Box>
-              <Box width={15}>
-                <Text bold>{dep.name}</Text>
+          return (
+            <Box key={dep.name} flexDirection="column" marginBottom={1}>
+              <Box>
+                <Box width={15}>
+                  <Text bold>{dep.name}</Text>
+                </Box>
+                <Text color={statusColor}>[{dep.status.toUpperCase()}]</Text>
               </Box>
-              <Text color={statusColor}>[{dep.status.toUpperCase()}]</Text>
+              <Box marginLeft={2}>
+                {dep.version && <Text color={theme.muted}>Version: {dep.version}</Text>}
+                {dep.path && <Text color={theme.muted}> Path: {dep.path}</Text>}
+                {dep.reason && <Text color={theme.warning}> Note: {dep.reason}</Text>}
+              </Box>
             </Box>
-            <Box marginLeft={2}>
-              {dep.version && <Text color={theme.muted}>Version: {dep.version}</Text>}
-              {dep.path && <Text color={theme.muted}> Path: {dep.path}</Text>}
-              {dep.reason && <Text color={theme.warning}> Note: {dep.reason}</Text>}
-            </Box>
-          </Box>
-        );
-      })}
-
-      <KeyHint
-        keys={[
-          { key: 'Esc/d', label: 'Close' },
-        ]}
-      />
-    </Box>
+          );
+        })}
+      </Box>
+    </Layout>
   );
 }

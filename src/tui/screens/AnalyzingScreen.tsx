@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { theme } from '../theme.js';
 import { Spinner } from '../components/ui/Spinner.js';
 import { KeyHint } from '../components/ui/KeyHint.js';
+import { Layout } from '../components/ui/Layout.js';
 
 export interface AnalyzingScreenProps {
   url: string;
@@ -17,22 +18,28 @@ export function AnalyzingScreen({ url, onCancel }: AnalyzingScreenProps) {
   });
 
   return (
-    <Box flexDirection="column" marginTop={1}>
-      <Box marginBottom={1}>
-        <Spinner />
-        <Text color={theme.text}> Analyzing URL...</Text>
-      </Box>
+    <Layout 
+      title="ANALYZING"
+      subtitle="Fetching metadata..."
+      footer={
+        <KeyHint
+          keys={[
+            { key: 'Esc/q', label: 'Cancel' },
+          ]}
+        />
+      }
+    >
+      <Box paddingX={2} marginY={2} flexDirection="column">
+        <Box marginBottom={2}>
+          <Spinner />
+          <Text color={theme.text}> Extracting formats and media info...</Text>
+        </Box>
 
-      <Box>
-        <Text color={theme.muted}>URL: </Text>
-        <Text color={theme.info}>{url}</Text>
+        <Box padding={1} borderStyle="single" borderColor={theme.muted}>
+          <Text color={theme.muted}>URL: </Text>
+          <Text color={theme.info}>{url}</Text>
+        </Box>
       </Box>
-
-      <KeyHint
-        keys={[
-          { key: 'Esc/q', label: 'Cancel' },
-        ]}
-      />
-    </Box>
+    </Layout>
   );
 }

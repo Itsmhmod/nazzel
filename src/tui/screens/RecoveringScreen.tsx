@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { theme } from '../theme.js';
 import { Alert } from '../components/ui/Alert.js';
 import { KeyHint } from '../components/ui/KeyHint.js';
+import { Layout } from '../components/ui/Layout.js';
 
 export interface RecoveringScreenProps {
   attempt: number;
@@ -18,22 +19,28 @@ export function RecoveringScreen({ attempt, maxAttempts, onCancel }: RecoveringS
   });
 
   return (
-    <Box flexDirection="column" marginTop={1}>
-      <Alert type="warning" title="Recovering Download...">
-        <Box>
-          <Text color={theme.text}>Attempt </Text>
-          <Text color={theme.warning} bold>{attempt}</Text>
-          <Text color={theme.text}> of </Text>
-          <Text color={theme.warning} bold>{maxAttempts}</Text>
-        </Box>
-        <Text color={theme.muted}>Retrying in background...</Text>
-      </Alert>
-
-      <KeyHint
-        keys={[
-          { key: 'Esc/q', label: 'Cancel' },
-        ]}
-      />
-    </Box>
+    <Layout 
+      title="RECOVERING"
+      subtitle="Retrying download"
+      footer={
+        <KeyHint
+          keys={[
+            { key: 'Esc/q', label: 'Cancel' },
+          ]}
+        />
+      }
+    >
+      <Box paddingX={2} marginY={1}>
+        <Alert type="warning" title="Recovering Download...">
+          <Box>
+            <Text color={theme.text}>Attempt </Text>
+            <Text color={theme.warning} bold>{attempt}</Text>
+            <Text color={theme.text}> of </Text>
+            <Text color={theme.warning} bold>{maxAttempts}</Text>
+          </Box>
+          <Text color={theme.muted}>Retrying in background...</Text>
+        </Alert>
+      </Box>
+    </Layout>
   );
 }

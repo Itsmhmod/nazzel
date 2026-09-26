@@ -1,7 +1,6 @@
 import { Command } from 'commander';
 import { getExitCodeForError } from './exitCodes.js';
 import { getLogger } from '@nazzel/shared/logger.js';
-import { downloadCommand } from './commands/download.js';
 import { doctorCommand } from './commands/doctor.js';
 import { historyCommand } from './commands/history.js';
 import { configCommand } from './commands/config.js';
@@ -31,6 +30,7 @@ export function createCli(): Command {
     .option('--no-tui', 'Run in machine-readable NDJSON mode without TUI')
     .action(async (url, options) => {
       try {
+        const { downloadCommand } = await import('./commands/download.js');
         await downloadCommand(url, options);
       } catch (error) {
         const logger = getLogger();

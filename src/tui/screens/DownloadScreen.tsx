@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { theme } from '../theme.js';
 import { ProgressBar } from '../components/ui/ProgressBar.js';
 import { KeyHint } from '../components/ui/KeyHint.js';
+import { Layout } from '../components/ui/Layout.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import type { IDownloadProgress } from '@nazzel/domain/types.js';
 
@@ -53,46 +54,48 @@ export function DownloadScreen({ title, progress, onCancel }: DownloadScreenProp
   const barWidth = Math.max(10, columns - (isNarrow ? 10 : 50));
 
   return (
-    <Box flexDirection="column" marginTop={1}>
-      <Box marginBottom={1}>
-        <Text color={theme.text} bold>{title || 'Downloading...'}</Text>
+    <Layout 
+      title="DOWNLOADING"
+      subtitle={title || 'Media File'}
+      footer={
+        <KeyHint
+          keys={[
+            { key: 'q', label: 'Cancel' },
+          ]}
+        />
+      }
+    >
+      <Box paddingX={2} marginY={1} flexDirection="column">
+        {phase === 'merging' || phase === 'converting' ? (
+          <Box padding={1} borderStyle="round" borderColor={theme.info}>
+            <Text color={theme.info}>Processing media (merging/converting)...</Text>
+          </Box>
+        ) : (
+          <Box flexDirection="column" padding={1} borderStyle="round" borderColor={theme.primary}>
+            <Box marginBottom={1} flexDirection={isNarrow ? 'column' : 'row'}>
+              <ProgressBar percent={pct} width={barWidth} />
+              <Box marginLeft={isNarrow ? 0 : 2} marginTop={isNarrow ? 1 : 0}>
+                <Text color={theme.primary} bold>{pct.toFixed(1)}%</Text>
+              </Box>
+            </Box>
+            
+            <Box flexDirection={isNarrow ? 'column' : 'row'} justifyContent="space-between">
+              <Box>
+                <Text color={theme.muted}>SPEED: </Text>
+                <Text color={theme.text} bold>{speedStr}</Text>
+              </Box>
+              <Box>
+                <Text color={theme.muted}>SIZE: </Text>
+                <Text color={theme.text} bold>{fracStr}</Text>
+              </Box>
+              <Box>
+                <Text color={theme.muted}>ETA: </Text>
+                <Text color={theme.highlight} bold>{etaStr}</Text>
+              </Box>
+            </Box>
+          </Box>
+        )}
       </Box>
-
-      {phase === 'merging' || phase === 'converting' ? (
-        <Box marginBottom={1} padding={1} borderStyle="round" borderColor={theme.info}>
-          <Text color={theme.info}>Processing media (merging/converting)...</Text>
-        </Box>
-      ) : (
-        <Box flexDirection="column" marginBottom={1} padding={1} borderStyle="round" borderColor={theme.primary}>
-          <Box marginBottom={1} flexDirection={isNarrow ? 'column' : 'row'}>
-            <ProgressBar percent={pct} width={barWidth} />
-            <Box marginLeft={isNarrow ? 0 : 2} marginTop={isNarrow ? 1 : 0}>
-              <Text color={theme.primary} bold>{pct.toFixed(1)}%</Text>
-            </Box>
-          </Box>
-          
-          <Box flexDirection={isNarrow ? 'column' : 'row'} justifyContent="space-between">
-            <Box>
-              <Text color={theme.muted}>SPEED: </Text>
-              <Text color={theme.text} bold>{speedStr}</Text>
-            </Box>
-            <Box>
-              <Text color={theme.muted}>SIZE: </Text>
-              <Text color={theme.text} bold>{fracStr}</Text>
-            </Box>
-            <Box>
-              <Text color={theme.muted}>ETA: </Text>
-              <Text color={theme.highlight} bold>{etaStr}</Text>
-            </Box>
-          </Box>
-        </Box>
-      )}
-
-      <KeyHint
-        keys={[
-          { key: 'q', label: 'Cancel' },
-        ]}
-      />
-    </Box>
+    </Layout>
   );
 }

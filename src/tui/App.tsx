@@ -83,7 +83,7 @@ export function App({ deps, initialUrl }: AppProps) {
 
   // Listen to domain events and dispatch them to the reducer.
   // Throttle PROGRESS_UPDATE to avoid React/Ink layout thrashing.
-  useAppEventBus(deps.eventBus, dispatch, 100);
+  useAppEventBus(deps.eventBus, dispatch, 200);
 
   // Global exit mechanism
   const handleQuit = () => {

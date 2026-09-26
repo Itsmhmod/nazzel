@@ -3,6 +3,8 @@ import { Box, Text, useInput } from 'ink';
 import clipboardy from 'clipboardy';
 import { theme } from '../theme.js';
 import { KeyHint } from '../components/ui/KeyHint.js';
+import { Layout } from '../components/ui/Layout.js';
+import { TextInput } from '../components/ui/TextInput.js';
 
 export interface HomeScreenProps {
   onSubmit: (url: string) => void;
@@ -25,51 +27,45 @@ export function HomeScreen({ onSubmit, onShowDiagnostics, onShowHistory, onQuit 
     }
   }, []);
   
-  // We handle simple raw input for URL parsing instead of ink-text-input 
-  // to avoid bringing in extra dependencies and keeping it lean.
   useInput((input, key) => {
-    if (key.return) {
-      if (url.trim().length > 0) {
-        onSubmit(url.trim());
-      }
-    } else if (key.escape || (input === 'q' && url.length === 0)) {
+    if (key.escape || (input === 'q' && url.length === 0)) {
       onQuit();
     } else if (input === 'd' && url.length === 0) {
       onShowDiagnostics();
     } else if (input === 'h' && url.length === 0) {
       onShowHistory();
-    } else if (key.backspace || key.delete) {
-      setUrl((prev) => prev.slice(0, -1));
-    } else if (input && !key.ctrl && !key.meta) {
-      setUrl((prev) => prev + input);
     }
-  });
+  }, { isActive: url.length === 0 });
 
   return (
-    <Box flexDirection="column" marginTop={1}>
-      <Box marginBottom={1}>
-        <Text color={theme.primary} bold>
-          NAZZEL
-        </Text>
-        <Text color={theme.muted}> - Terminal Media Downloader</Text>
-      </Box>
-
-      <Box flexDirection="column" marginBottom={1}>
-        <Text color={theme.text}>Enter media URL:</Text>
-        <Box borderStyle="single" borderColor={theme.muted} paddingX={1} width={60}>
-          <Text>{url}</Text>
-          <Text color={theme.primary}>█</Text>
+    <Layout 
+      title="NAZZEL" 
+      subtitle="Terminal Media Downloader"
+      footer={
+        <KeyHint
+          keys={[
+            { key: 'Enter', label: 'Analyze' },
+            { key: 'h', label: 'History' },
+            { key: 'd', label: 'Diagnostics' },
+            { key: 'Esc/q', label: 'Quit' },
+          ]}
+        />
+      }
+    >
+      <Box flexDirection="column" marginY={2} paddingX={2}>
+        <Text color={theme.primary} bold>Enter media URL:</Text>
+        <Box marginTop={1}>
+          <TextInput 
+            value={url} 
+            onChange={setUrl} 
+            onSubmit={(val) => {
+              if (val.trim().length > 0) { onSubmit(val.trim()); }
+            }} 
+            placeholder="https://..." 
+            width={60} 
+          />
         </Box>
       </Box>
-
-      <KeyHint
-        keys={[
-          { key: 'Enter', label: 'Analyze' },
-          { key: 'h', label: 'History' },
-          { key: 'd', label: 'Diagnostics' },
-          { key: 'Esc/q', label: 'Quit' },
-        ]}
-      />
-    </Box>
+    </Layout>
   );
 }

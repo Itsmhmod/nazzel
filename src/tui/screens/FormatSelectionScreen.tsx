@@ -4,6 +4,7 @@ import { theme } from '../theme.js';
 import { SelectList } from '../components/ui/SelectList.js';
 import { KeyHint } from '../components/ui/KeyHint.js';
 import { Badge } from '../components/ui/Badge.js';
+import { Layout } from '../components/ui/Layout.js';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import type { IMediaInfo, IMediaFormat } from '@nazzel/domain/types.js';
 
@@ -93,13 +94,24 @@ export function FormatSelectionScreen({ mediaInfo, onSelect, onCancel }: FormatS
   }, [mediaInfo]);
 
   return (
-    <Box flexDirection="column" marginTop={1}>
-      <Box marginBottom={1} flexDirection="column">
-        <Text color={theme.text} bold>{mediaInfo.title || 'Unknown Title'}</Text>
+    <Layout 
+      title="FORMAT SELECTION"
+      subtitle={mediaInfo.title || 'Unknown Title'}
+      footer={
+        <KeyHint
+          keys={[
+            { key: '↑/↓', label: 'Navigate' },
+            { key: 'Enter', label: 'Select' },
+            { key: 'Esc', label: 'Cancel' },
+          ]}
+        />
+      }
+    >
+      <Box paddingX={1} marginY={1}>
         <Text color={theme.muted}>Select a format to download ({items.length} options):</Text>
       </Box>
 
-      <Box height={Math.max(5, rows - 10)} flexDirection="column">
+      <Box height={Math.max(5, rows - 10)} flexDirection="column" paddingX={1}>
         <SelectList
           items={items}
           onSelect={(item) => onSelect(item.value)}
@@ -107,14 +119,6 @@ export function FormatSelectionScreen({ mediaInfo, onSelect, onCancel }: FormatS
           visibleRows={Math.max(5, rows - 10)}
         />
       </Box>
-
-      <KeyHint
-        keys={[
-          { key: '↑/↓', label: 'Navigate' },
-          { key: 'Enter', label: 'Select' },
-          { key: 'Esc', label: 'Cancel' },
-        ]}
-      />
-    </Box>
+    </Layout>
   );
 }
