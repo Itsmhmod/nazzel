@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DependencyManager } from '../../../../src/infrastructure/dependencies/DependencyManager.js';
 import { GithubReleaseProvider } from '../../../../src/infrastructure/dependencies/GithubReleaseProvider.js';
 import { Downloader } from '../../../../src/infrastructure/dependencies/Downloader.js';
-import { SafeZipExtractor } from '../../../../src/infrastructure/dependencies/SafeZipExtractor.js';
+
 import type { IProcessRunner } from '../../../../src/application/interfaces/IProcessRunner.js';
 import type { IFileSystem } from '../../../../src/application/interfaces/IFileSystem.js';
 import type { INazzelConfig } from '../../../../src/domain/types.js';

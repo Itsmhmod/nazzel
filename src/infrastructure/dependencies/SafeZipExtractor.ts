@@ -95,9 +95,8 @@ export class SafeZipExtractor {
         // External file attributes (upper 16 bits encode file type in Unix)
         // Check for symlinks. 0xA000 is the Unix mask for symbolic link.
         const externalAttrs = entry.externalFileAttributes;
-        if (externalAttrs != null) {
+        if (externalAttrs !== null && externalAttrs !== undefined) {
           const unixMode = externalAttrs >>> 16;
-          // eslint-disable-next-line no-bitwise
           if ((unixMode & 0o170000) === 0o120000) {
             throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive rejected due to symlink entry: ${filename}`);
           }
@@ -106,7 +105,7 @@ export class SafeZipExtractor {
 
       // 2. Extraction Pass
       for (const entry of entries) {
-        if (entry.directory) continue;
+        if (entry.directory) { continue; }
 
         const targetPath = path.resolve(options.targetDir, entry.filename);
         const resolvedTargetDir = path.resolve(options.targetDir);
