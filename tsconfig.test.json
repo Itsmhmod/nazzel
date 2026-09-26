@@ -3,6 +3,8 @@
   "compilerOptions": {
     "rootDir": ".",
     "noEmit": true,
+    "noImplicitAny": false,
+    "types": ["vitest/globals"],
     "paths": {
       "@nazzel/domain/*": ["./src/domain/*"],
       "@nazzel/shared/*": ["./src/shared/*"],
