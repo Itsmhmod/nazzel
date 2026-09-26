@@ -39,4 +39,5 @@ export const DEFAULT_CONFIG: INazzelConfig = {
   ytdlpPath: null,
   ffmpegPath: null,
   ffprobePath: null,
+  denoPath: null,
 };

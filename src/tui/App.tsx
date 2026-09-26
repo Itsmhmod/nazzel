@@ -11,50 +11,85 @@ import { CompletedScreen } from './screens/CompletedScreen.js';
 import { ErrorScreen } from './screens/ErrorScreen.js';
 import { RecoveringScreen } from './screens/RecoveringScreen.js';
 import { DiagnosticsScreen } from './screens/DiagnosticsScreen.js';
-import type { CompositionRoot } from '../cli/CompositionRoot.js';
+import { HistoryScreen } from './screens/HistoryScreen.js';
+import { CheckingEnvironmentScreen } from './screens/CheckingEnvironmentScreen.js';
+import { RepairScreen } from './screens/RepairScreen.js';
+import { ErrorBoundary } from './components/ErrorBoundary.js';
+import type { IDownloadOrchestrator } from '../application/interfaces/IDownloadOrchestrator.js';
+import type { IHistoryManager } from '../application/interfaces/IHistoryManager.js';
+import type { IDiagnosticsRunner } from '../application/interfaces/IDiagnosticsRunner.js';
+import type { IAppEventBus } from '../application/interfaces/IAppEventBus.js';
 import type { IMediaInfo } from '@nazzel/domain/types.js';
+import { AppError } from '@nazzel/domain/errors.js';
+
+import type { IDependencyManager } from '../application/interfaces/IDependencyManager.js';
+
+export interface ITuiDependencies {
+  orchestrator: IDownloadOrchestrator;
+  eventBus: IAppEventBus;
+  diagnosticsRunner: IDiagnosticsRunner;
+  historyManager: IHistoryManager;
+  depManager: IDependencyManager;
+}
 
 export interface AppProps {
-  root: CompositionRoot;
+  deps: ITuiDependencies;
   initialUrl?: string | undefined;
 }
 
-export function App({ root, initialUrl }: AppProps) {
+export function App({ deps, initialUrl }: AppProps) {
   const [state, dispatch] = useReducer(appReducer, initialState);
   const { exit } = useApp();
 
   const handleSubmitUrl = useCallback((url: string) => {
-    dispatch({ type: 'UI_SUBMIT_URL', url });
+    const downloadId = 'dl-' + Math.random().toString(36).substring(2, 9);
+    dispatch({ type: 'UI_SUBMIT_URL', url, downloadId });
     // Trigger analysis asynchronously
-    root.orchestrator.analyze(url)
+    deps.orchestrator.analyze(url, downloadId)
       .then((info: IMediaInfo) => {
         dispatch({ type: 'UI_SHOW_FORMATS', info });
       })
       .catch((error: any) => {
-        // We reuse the existing AppError or wrap it
+        if (error.code === 'CANCELLED') {
+          return;
+        }
         dispatch({
           type: 'DOWNLOAD_FAILED',
-          downloadId: 'analyze',
+          downloadId,
           error
         });
       });
-  }, [dispatch, root.orchestrator]);
+  }, [dispatch, deps.orchestrator]);
+
+  const [isInitialized, setIsInitialized] = React.useState(false);
 
   useEffect(() => {
-    if (initialUrl) {
-      handleSubmitUrl(initialUrl);
-    }
-  }, [initialUrl, handleSubmitUrl]);
+    // Only run dependency check on startup
+    if (isInitialized) {return;}
+    
+    dispatch({ type: 'UI_CHECKING_ENV' });
+    void deps.depManager.detectAll().then(report => {
+      if (!report.allOk) {
+        dispatch({ type: 'UI_REPAIRING', report });
+      } else {
+        dispatch({ type: 'UI_RESTART' });
+        setIsInitialized(true);
+        if (initialUrl) {
+          handleSubmitUrl(initialUrl);
+        }
+      }
+    });
+  }, [isInitialized, deps.depManager, initialUrl, handleSubmitUrl]);
 
   // Listen to domain events and dispatch them to the reducer.
   // Throttle PROGRESS_UPDATE to avoid React/Ink layout thrashing.
-  useAppEventBus(root.eventBus, dispatch, 100);
+  useAppEventBus(deps.eventBus, dispatch, 100);
 
   // Global exit mechanism
   const handleQuit = () => {
     // If there's an active download, cancel it first
     if (state.downloadId) {
-      root.orchestrator.cancel(state.downloadId);
+      deps.orchestrator.cancel(state.downloadId);
     }
     // Give it a tiny bit of time to emit CANCELLED before exiting, or just exit immediately.
     exit();
@@ -68,6 +103,10 @@ export function App({ root, initialUrl }: AppProps) {
     dispatch({ type: 'UI_TOGGLE_DIAGNOSTICS' });
   };
 
+  const handleShowHistory = () => {
+    dispatch({ type: 'UI_TOGGLE_HISTORY' });
+  };
+
   const handleFormatSelected = (formatId: string) => {
     if (!state.url || !state.mediaInfo) {
       return;
@@ -77,7 +116,7 @@ export function App({ root, initialUrl }: AppProps) {
     // Construct download ID
     const downloadId = 'dl-' + Math.random().toString(36).substring(2, 9);
     
-    root.orchestrator.download({
+    deps.orchestrator.download({
       url: state.url,
       formatId,
     }, downloadId, state.mediaInfo.title);
@@ -85,7 +124,7 @@ export function App({ root, initialUrl }: AppProps) {
 
   const handleCancelDownload = () => {
     if (state.downloadId) {
-      root.orchestrator.cancel(state.downloadId);
+      deps.orchestrator.cancel(state.downloadId);
     }
   };
 
@@ -96,11 +135,37 @@ export function App({ root, initialUrl }: AppProps) {
   let screenElement: React.ReactNode = null;
 
   switch (state.screen) {
+    case 'CHECKING_ENV':
+      screenElement = <CheckingEnvironmentScreen />;
+      break;
+    case 'REPAIRING':
+      screenElement = (
+        <RepairScreen 
+          report={state.dependencyReport!}
+          progress={state.repairProgress}
+          onConfirm={() => {
+            void deps.depManager.installMissing((name, downloaded, total) => {
+              dispatch({ type: 'UI_REPAIR_PROGRESS', name, downloaded, total });
+            }).then(success => {
+              if (success) {
+                dispatch({ type: 'UI_RESTART' });
+                // We are initialized
+                if (initialUrl) {handleSubmitUrl(initialUrl);}
+              } else {
+                dispatch({ type: 'DOWNLOAD_FAILED', downloadId: '', error: AppError.from('DEPENDENCY_INSTALL_FAILED', 'Failed to install dependencies') });
+              }
+            });
+          }}
+          onQuit={handleQuit}
+        />
+      );
+      break;
     case 'HOME':
       screenElement = (
         <HomeScreen 
           onSubmit={handleSubmitUrl}
           onShowDiagnostics={handleShowDiagnostics}
+          onShowHistory={handleShowHistory}
           onQuit={handleQuit} 
         />
       );
@@ -109,7 +174,10 @@ export function App({ root, initialUrl }: AppProps) {
       screenElement = (
         <AnalyzingScreen 
           url={state.url || ''} 
-          onCancel={handleRestart} 
+          onCancel={() => {
+            handleCancelDownload();
+            handleRestart();
+          }} 
         />
       );
       break;
@@ -165,16 +233,26 @@ export function App({ root, initialUrl }: AppProps) {
     case 'DIAGNOSTICS':
       screenElement = (
         <DiagnosticsScreen 
-          runner={root.diagnosticsRunner}
+          runner={deps.diagnosticsRunner}
           onClose={handleShowDiagnostics}
+        />
+      );
+      break;
+    case 'HISTORY':
+      screenElement = (
+        <HistoryScreen 
+          historyManager={deps.historyManager}
+          onClose={handleShowHistory}
         />
       );
       break;
   }
 
   return (
-    <Box>
-      {screenElement}
-    </Box>
+    <ErrorBoundary>
+      <Box>
+        {screenElement}
+      </Box>
+    </ErrorBoundary>
   );
 }

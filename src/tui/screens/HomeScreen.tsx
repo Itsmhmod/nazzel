@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
+import clipboardy from 'clipboardy';
 import { theme } from '../theme.js';
 import { KeyHint } from '../components/ui/KeyHint.js';
 
 export interface HomeScreenProps {
   onSubmit: (url: string) => void;
   onShowDiagnostics: () => void;
+  onShowHistory: () => void;
   onQuit: () => void;
 }
 
-export function HomeScreen({ onSubmit, onShowDiagnostics, onQuit }: HomeScreenProps) {
+export function HomeScreen({ onSubmit, onShowDiagnostics, onShowHistory, onQuit }: HomeScreenProps) {
   const [url, setUrl] = useState('');
+  
+  useEffect(() => {
+    try {
+      const text = clipboardy.readSync();
+      if (text && /^https?:\/\//i.test(text.trim())) {
+        setUrl(text.trim());
+      }
+    } catch {
+      // Ignore clipboard read errors in headless environments
+    }
+  }, []);
   
   // We handle simple raw input for URL parsing instead of ink-text-input 
   // to avoid bringing in extra dependencies and keeping it lean.
@@ -23,6 +36,8 @@ export function HomeScreen({ onSubmit, onShowDiagnostics, onQuit }: HomeScreenPr
       onQuit();
     } else if (input === 'd' && url.length === 0) {
       onShowDiagnostics();
+    } else if (input === 'h' && url.length === 0) {
+      onShowHistory();
     } else if (key.backspace || key.delete) {
       setUrl((prev) => prev.slice(0, -1));
     } else if (input && !key.ctrl && !key.meta) {
@@ -50,6 +65,7 @@ export function HomeScreen({ onSubmit, onShowDiagnostics, onQuit }: HomeScreenPr
       <KeyHint
         keys={[
           { key: 'Enter', label: 'Analyze' },
+          { key: 'h', label: 'History' },
           { key: 'd', label: 'Diagnostics' },
           { key: 'Esc/q', label: 'Quit' },
         ]}

@@ -13,4 +13,6 @@ export const theme = {
   muted: '#6B7280',     // Gray for hints and empty states
   text: '#F3F4F6',      // Default bright text
   highlight: '#FCD34D', // Highlighted selections
+  bgDark: '#111827',    // Dark background if needed
+  bgLight: '#1F2937',   // Lighter background
 } as const;

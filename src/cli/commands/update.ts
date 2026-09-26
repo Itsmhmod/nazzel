@@ -6,13 +6,21 @@ export function updateCommand(): Command {
   cmd.description('Update yt-dlp to the latest version');
   
   cmd.action(async () => {
-    await createCompositionRoot();
+    const root = await createCompositionRoot();
     
-    // In a real CLI, we might output status via AppEventBus, but here we just wait
-    // We would need a public method on depManager to force update, or ensureBinaries.
-    // For now, we'll just output the intent or if DependencyManager supports forcing an update, we call it.
-    process.stdout.write(JSON.stringify({ type: 'UPDATE_COMMAND_ACKNOWLEDGED' }) + '\n');
-    process.stdout.write(JSON.stringify({ type: 'UPDATE_NOT_IMPLEMENTED', details: 'Binary management is delegated to Phase 4' }) + '\n');
+    try {
+      process.stdout.write(JSON.stringify({ type: 'UPDATE_STARTED', dependency: 'yt-dlp' }) + '\n');
+      const success = await root.depManager.update('yt-dlp');
+      if (success) {
+        process.stdout.write(JSON.stringify({ type: 'UPDATE_COMPLETED', dependency: 'yt-dlp' }) + '\n');
+      } else {
+        process.stdout.write(JSON.stringify({ type: 'UPDATE_FAILED', dependency: 'yt-dlp' }) + '\n');
+        process.exitCode = 1;
+      }
+    } catch (e: any) {
+      process.stdout.write(JSON.stringify({ type: 'UPDATE_FAILED', dependency: 'yt-dlp', error: e.message }) + '\n');
+      process.exitCode = 1;
+    }
   });
 
   return cmd;

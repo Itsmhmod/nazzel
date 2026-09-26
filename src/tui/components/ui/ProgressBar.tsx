@@ -9,16 +9,22 @@ export interface ProgressBarProps {
 
 export function ProgressBar({ percent, width = 40 }: ProgressBarProps) {
   const clamped = Math.max(0, Math.min(100, percent));
-  const filledWidth = Math.floor((clamped / 100) * width);
-  const emptyWidth = width - filledWidth;
+  const chars = width * (clamped / 100);
+  const filledWidth = Math.floor(chars);
+  const frac = chars - filledWidth;
+  
+  const fractionChars = [' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█'];
+  const fracChar = fractionChars[Math.floor(frac * fractionChars.length)] || ' ';
+  
+  const emptyWidth = Math.max(0, width - filledWidth - (fracChar !== ' ' ? 1 : 0));
 
   const filledStr = '█'.repeat(filledWidth);
-  const emptyStr = '░'.repeat(emptyWidth);
+  const emptyStr = ' '.repeat(emptyWidth);
 
   return (
     <Box>
-      <Text color={theme.primary}>{filledStr}</Text>
-      <Text color={theme.muted}>{emptyStr}</Text>
+      <Text color={theme.primary}>{filledStr}{fracChar !== ' ' ? fracChar : ''}</Text>
+      <Text color={theme.bgLight}>{emptyStr}</Text>
     </Box>
   );
 }

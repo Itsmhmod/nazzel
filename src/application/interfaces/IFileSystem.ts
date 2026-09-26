@@ -10,4 +10,5 @@ export interface IFileSystem {
   readFile(filePath: string): Promise<string>;
   writeJson<T>(filePath: string, data: T): Promise<void>;
   appendLine(filePath: string, line: string): Promise<void>;
+  realpath(filePath: string): Promise<string>;
 }

@@ -15,5 +15,5 @@ export interface IMediaEngine {
    * Start a download process, yielding real-time progress updates.
    * Resolves to the final output file details on completion.
    */
-  download(request: IDownloadRequest, signal?: AbortSignal): AsyncGenerator<IDownloadProgress, IDownloadResult, unknown>;
+  download(request: IDownloadRequest, downloadId: string, signal?: AbortSignal): AsyncGenerator<IDownloadProgress, IDownloadResult, unknown>;
 }

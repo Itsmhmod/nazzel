@@ -95,6 +95,8 @@ export interface IDownloadProgress {
   readonly fragment?: { readonly current: number; readonly total: number };
   /** Which phase: downloading, merging/converting, or verifying */
   readonly phase: 'downloading' | 'merging' | 'converting' | 'verifying';
+  /** The target file being operated on */
+  readonly activeFile?: string;
 }
 
 /** The successful outcome of a completed download. */
@@ -115,9 +117,9 @@ export interface IDownloadResult {
 // Dependency
 // ---------------------------------------------------------------------------
 
-export type DependencyName = 'node' | 'yt-dlp' | 'yt-dlp-wrap' | 'ffmpeg' | 'ffprobe';
+export type DependencyName = 'node' | 'deno' | 'yt-dlp' | 'yt-dlp-wrap' | 'ffmpeg' | 'ffprobe';
 
-export type DependencyStatus = 'ok' | 'missing' | 'outdated' | 'unknown';
+export type DependencyStatus = 'ok' | 'missing' | 'outdated' | 'broken' | 'unknown';
 
 export interface IDependencyStatus {
   readonly name: DependencyName;
@@ -126,6 +128,7 @@ export interface IDependencyStatus {
   readonly version: string | null;
   /** Resolved binary path, or null if not found */
   readonly path: string | null;
+  readonly source: 'config' | 'managed' | 'system' | null;
   /** Minimum required version string */
   readonly minVersion: string;
   /** Human-readable explanation if status is not 'ok' */
@@ -177,6 +180,7 @@ export interface INazzelConfig {
   readonly ytdlpPath: string | null;
   readonly ffmpegPath: string | null;
   readonly ffprobePath: string | null;
+  readonly denoPath: string | null;
 }
 
 // ---------------------------------------------------------------------------

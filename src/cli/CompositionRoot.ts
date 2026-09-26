@@ -43,8 +43,21 @@ export async function createCompositionRoot(configPath?: string) {
     ffprobeBin = await depManager.getBinaryPath('ffprobe');
   } catch {}
 
+  let jsRuntimeBin: string | null = null;
+  try {
+    jsRuntimeBin = await depManager.getBinaryPath('deno');
+  } catch {
+    try {
+      jsRuntimeBin = await depManager.getBinaryPath('node');
+    } catch {
+      // Both optional/missing/outdated. yt-dlp will fallback to system path or fail internally if needed.
+      // Wait, we should not let yt-dlp fallback to a bad system path if we know it's bad.
+      // But YtDlpEngine relies on `jsRuntimeBin`. If it's null, it might use `process.execPath` if it's a valid node.
+    }
+  }
+
   const ffprobeRunner = new FfprobeRunner(processRunner, ffprobeBin);
-  const ytDlpEngine = new YtDlpEngine(processRunner, ytdlpBin, ffprobeRunner);
+  const ytDlpEngine = new YtDlpEngine(processRunner, ytdlpBin, ffprobeRunner, jsRuntimeBin);
   
   // 3. App Layer
   const eventBus = new AppEventBus();
@@ -58,7 +71,9 @@ export async function createCompositionRoot(configPath?: string) {
     queueManager, 
     recoveryManager, 
     historyManager, 
-    configManager
+    configManager,
+    depManager,
+    fileSystem
   );
   
   const diagnosticsRunner = new DiagnosticsRunner(
@@ -66,7 +81,8 @@ export async function createCompositionRoot(configPath?: string) {
     fileSystem, 
     configManager,
     configPath || CONFIG_FILE_PATH,
-    config.historyFile
+    config.historyFile,
+    ytDlpEngine
   );
 
   return { orchestrator, eventBus, configManager, historyManager, diagnosticsRunner, depManager, queueManager };

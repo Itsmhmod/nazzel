@@ -5,6 +5,8 @@ import { QueueManager } from '../../../src/application/QueueManager.js';
 import { RecoveryManager } from '../../../src/application/RecoveryManager.js';
 import type { HistoryManager } from '../../../src/application/HistoryManager.js';
 import type { ConfigManager } from '../../../src/application/ConfigManager.js';
+import type { IDependencyManager } from '../../../src/application/interfaces/IDependencyManager.js';
+import type { IFileSystem } from '../../../src/application/interfaces/IFileSystem.js';
 import type { IMediaEngine } from '../../../src/application/interfaces/IMediaEngine.js';
 import { AppError } from '../../../src/domain/errors.js';
 import type { IDownloadRequest, IDownloadResult, IMediaInfo } from '../../../src/domain/types.js';
@@ -16,6 +18,8 @@ describe('DownloadOrchestrator', () => {
   let recoveryManager: RecoveryManager;
   let mockHistoryManager: vi.Mocked<HistoryManager>;
   let mockConfigManager: vi.Mocked<ConfigManager>;
+  let mockDependencyManager: vi.Mocked<IDependencyManager>;
+  let mockFileSystem: vi.Mocked<IFileSystem>;
   let orchestrator: DownloadOrchestrator;
 
   const sampleRequest: IDownloadRequest = { url: 'https://test.com/vid' };
@@ -65,13 +69,25 @@ describe('DownloadOrchestrator', () => {
       save: vi.fn()
     } as any;
 
+    mockDependencyManager = {
+      update: vi.fn().mockResolvedValue(true),
+      getBinaryPath: vi.fn().mockResolvedValue('/bin/path')
+    } as any;
+
+    mockFileSystem = {
+      exists: vi.fn().mockResolvedValue(false),
+      delete: vi.fn().mockResolvedValue(undefined)
+    } as any;
+
     orchestrator = new DownloadOrchestrator(
       eventBus,
       mockMediaEngine,
       queueManager,
       recoveryManager,
       mockHistoryManager,
-      mockConfigManager
+      mockConfigManager,
+      mockDependencyManager,
+      mockFileSystem
     );
   });
 
@@ -121,6 +137,7 @@ describe('DownloadOrchestrator', () => {
     
     expect(mockMediaEngine.download).toHaveBeenCalledWith(
       expect.objectContaining({ formatId: '137', outputDir: '/out' }),
+      'dl-2',
       expect.any(AbortSignal)
     );
   });
@@ -170,12 +187,12 @@ describe('DownloadOrchestrator', () => {
 
     async function* mockGeneratorHangs(signal: AbortSignal) {
       await new Promise<void>((_, reject) => {
-        signal.addEventListener('abort', () => reject(new AppError('CANCELLED', 'Aborted', false)));
+        signal.addEventListener('abort', () => reject(new AppError('CANCELLED', 'Aborted')));
       });
       return sampleResult;
     }
     
-    mockMediaEngine.download.mockImplementation((req, signal) => mockGeneratorHangs(signal!) as any);
+    mockMediaEngine.download.mockImplementation((req, id, signal) => mockGeneratorHangs(signal!) as any);
 
     orchestrator.download(sampleRequest, 'dl-5');
     
@@ -191,5 +208,41 @@ describe('DownloadOrchestrator', () => {
     expect(mockHistoryManager.append).toHaveBeenCalledWith(
       expect.objectContaining({ status: 'cancelled' })
     );
+  });
+
+  it('triggers dependency update on EXTRACTOR_FAILURE and retries', async () => {
+    let attempts = 0;
+    async function* mockGeneratorUpdateNeeded() {
+      attempts++;
+      if (attempts === 1) {
+        throw new AppError('EXTRACTOR_FAILURE', 'update needed');
+      }
+      return sampleResult;
+    }
+    
+    mockMediaEngine.download.mockImplementation(() => mockGeneratorUpdateNeeded() as any);
+
+    orchestrator.download(sampleRequest, 'dl-update');
+    await delay(30);
+
+    expect(mockDependencyManager.update).toHaveBeenCalledWith('yt-dlp');
+    expect(attempts).toBe(2);
+  });
+
+  it('cleans up partial files on permanent failure', async () => {
+    mockFileSystem.exists.mockResolvedValue(true);
+    
+    async function* mockGeneratorFails() {
+      yield { downloadId: 'dl-fail', percent: 50, speed: '1M', eta: 10, downloaded: 500, total: 1024, phase: 'downloading', activeFile: '/tmp/active.mp4' };
+      throw new AppError('FORMAT_UNAVAILABLE', 'permanent failure', false);
+    }
+    mockMediaEngine.download.mockReturnValue(mockGeneratorFails() as any);
+
+    orchestrator.download(sampleRequest, 'dl-fail');
+    await delay(20);
+
+    expect(mockFileSystem.delete).toHaveBeenCalledWith('/tmp/active.mp4');
+    expect(mockFileSystem.delete).toHaveBeenCalledWith('/tmp/active.mp4.part');
+    expect(mockFileSystem.delete).toHaveBeenCalledWith('/tmp/active.mp4.ytdl');
   });
 });

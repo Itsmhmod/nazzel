@@ -56,7 +56,15 @@ export async function downloadCommand(url: string | undefined, options: any) {
     const root = await createCompositionRoot();
 
     return new Promise<void>((resolve, reject) => {
-      const { waitUntilExit } = render(React.createElement(App, { root, initialUrl: url }));
+      const deps = {
+        orchestrator: root.orchestrator,
+        eventBus: root.eventBus,
+        diagnosticsRunner: root.diagnosticsRunner,
+        historyManager: root.historyManager,
+        depManager: root.depManager,
+      };
+
+      const { waitUntilExit } = render(React.createElement(App, { deps, initialUrl: url }));
 
       waitUntilExit().then(() => {
         resolve();

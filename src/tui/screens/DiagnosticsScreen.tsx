@@ -3,10 +3,10 @@ import { Box, Text, useInput } from 'ink';
 import { theme } from '../theme.js';
 import { KeyHint } from '../components/ui/KeyHint.js';
 import { Spinner } from '../components/ui/Spinner.js';
-import type { DiagnosticsRunner, IDiagnosticsReport } from '@nazzel/application/DiagnosticsRunner.js';
+import type { IDiagnosticsRunner, IDiagnosticsReport } from '../../application/interfaces/IDiagnosticsRunner.js';
 
 export interface DiagnosticsScreenProps {
-  runner: DiagnosticsRunner;
+  runner: IDiagnosticsRunner;
   onClose: () => void;
 }
 

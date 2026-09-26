@@ -92,4 +92,12 @@ export class NodeFileSystem implements IFileSystem {
       throw AppError.from('FS_WRITE_FAILED', error, { filePath, action: 'appendLine' });
     }
   }
+
+  async realpath(filePath: string): Promise<string> {
+    try {
+      return await fs.realpath(filePath);
+    } catch (error) {
+      throw AppError.from('FS_WRITE_FAILED', error, { filePath, action: 'realpath' });
+    }
+  }
 }

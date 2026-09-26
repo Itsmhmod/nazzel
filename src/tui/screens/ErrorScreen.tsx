@@ -3,6 +3,7 @@ import { Box, Text, useInput } from 'ink';
 import { theme } from '../theme.js';
 import { Alert } from '../components/ui/Alert.js';
 import { KeyHint } from '../components/ui/KeyHint.js';
+import { Badge } from '../components/ui/Badge.js';
 import type { AppError } from '@nazzel/domain/errors.js';
 
 export interface ErrorScreenProps {
@@ -26,15 +27,22 @@ export function ErrorScreen({ error, onShowDiagnostics, onQuit }: ErrorScreenPro
         {error ? (
           <Box flexDirection="column">
             <Text color={theme.text}>{error.message}</Text>
-            <Box marginTop={1}>
-              <Text color={theme.muted}>Code: </Text>
-              <Text color={theme.warning}>{error.code}</Text>
-            </Box>
-            <Box>
-              <Text color={theme.muted}>Recoverable: </Text>
-              <Text color={error.recoverable ? theme.success : theme.error}>
-                {error.recoverable ? 'Yes (Exhausted)' : 'No'}
-              </Text>
+            <Box marginTop={1} flexDirection="column">
+              <Box marginBottom={1}>
+                <Badge label={error.code} bgColor={theme.error} color={theme.bgDark} bold />
+                <Box marginLeft={1}>
+                  <Text color={theme.muted}>
+                    Recoverable: {error.recoverable ? 'Yes (Exhausted)' : 'No'}
+                  </Text>
+                </Box>
+              </Box>
+              
+              {!!error.cause && (
+                <Box flexDirection="column" marginTop={1} padding={1} borderStyle="single" borderColor={theme.muted}>
+                  <Text color={theme.muted}>Cause Details:</Text>
+                  <Text color={theme.text}>{String((error.cause as any).message || error.cause)}</Text>
+                </Box>
+              )}
             </Box>
           </Box>
         ) : (

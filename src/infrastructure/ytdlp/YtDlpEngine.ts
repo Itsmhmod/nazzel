@@ -8,6 +8,7 @@ import type {
 import type { IMediaEngine } from '../../application/interfaces/IMediaEngine.js';
 import type { IProcessRunner } from '../../application/interfaces/IProcessRunner.js';
 import { YtDlpOutputParser } from './YtDlpOutputParser.js';
+import * as path from 'path';
 
 export class YtDlpEngine implements IMediaEngine {
   private parser = new YtDlpOutputParser();
@@ -15,13 +16,26 @@ export class YtDlpEngine implements IMediaEngine {
   constructor(
     private readonly runner: IProcessRunner,
     private readonly ytdlpBin: string,
-    private readonly ffprobeRunner?: import('../../application/interfaces/IFfprobeRunner.js').IFfprobeRunner
+    private readonly ffprobeRunner?: import('../../application/interfaces/IFfprobeRunner.js').IFfprobeRunner,
+    private readonly jsRuntimeBin: string | null = null
   ) {}
+
+  private getJsRuntimeArgs(): string[] {
+    if (this.jsRuntimeBin) {
+      // If we have an explicitly resolved runtime (Deno or Node), pass it.
+      // yt-dlp expects 'deno:path' or 'node:path'.
+      const name = this.jsRuntimeBin.toLowerCase().includes('node') ? 'node' : 'deno';
+      return ['--js-runtimes', `${name}:${this.jsRuntimeBin}`];
+    }
+
+    // Otherwise, return empty to let yt-dlp fall back to its default system PATH search.
+    return [];
+  }
 
   async analyze(url: string, signal?: AbortSignal): Promise<IMediaInfo> {
     const processArgs: any = {
       bin: this.ytdlpBin,
-      args: ['--dump-json', '--no-playlist', '--no-warnings', '--', url],
+      args: ['--dump-json', '--no-playlist', '--no-warnings', ...this.getJsRuntimeArgs(), '--', url],
       timeoutMs: 30000,
     };
     if (signal !== undefined) {processArgs.signal = signal;}
@@ -35,16 +49,17 @@ export class YtDlpEngine implements IMediaEngine {
     return this.parser.parseMediaInfo(result.stdout.trim(), url);
   }
 
-  async *download(request: IDownloadRequest, signal?: AbortSignal): AsyncGenerator<IDownloadProgress, IDownloadResult, unknown> {
+  async *download(request: IDownloadRequest, downloadId: string, signal?: AbortSignal): AsyncGenerator<IDownloadProgress, IDownloadResult, unknown> {
     const formatArg = request.formatId || (request.audioOnly ? 'bestaudio' : 'bestvideo+bestaudio/best');
-    const outputTemplate = request.outputDir ? `${request.outputDir}/%(id)s.%(ext)s` : '%(id)s.%(ext)s';
+    const outputTemplate = request.outputDir ? path.join(request.outputDir, '%(id)s.%(ext)s') : '%(id)s.%(ext)s';
 
     const args = [
       '--newline',
-      '--progress-template', '{"_type":"progress","percent":%(progress.percentage)s,"speed":"%(progress.speed)s","eta":%(progress.eta)s,"downloaded":%(progress.downloaded_bytes)s,"total":%(progress.total_bytes)s,"frag_index":%(progress.fragment_index)s,"frag_count":%(progress.fragment_count)s}',
+      '--progress-template', '{"_type":"progress","percent":%(progress.percentage)s,"speed":"%(progress.speed)s","eta":%(progress.eta)s,"downloaded":%(progress.downloaded_bytes)s,"total":%(progress.total_bytes)s,"frag_index":%(progress.fragment_index)s,"frag_count":%(progress.fragment_count)s,"filename":"%(info.filepath)s"}',
       '--print-json',
       '-f', formatArg,
       '-o', outputTemplate,
+      ...this.getJsRuntimeArgs()
     ];
 
     if (request.audioOnly) {
@@ -66,7 +81,7 @@ export class YtDlpEngine implements IMediaEngine {
     for await (const line of processStream) {
       if (!line.trim()) {continue;}
 
-      const progress = this.parser.parseProgressLine(line, request.url);
+      const progress = this.parser.parseProgressLine(line, downloadId);
       if (progress) {
         yield progress;
         continue;
@@ -89,7 +104,7 @@ export class YtDlpEngine implements IMediaEngine {
       try {
         // Yield verification phase event
         yield {
-          downloadId: request.url,
+          downloadId,
           percent: 100,
           speed: null,
           eta: null,
@@ -107,7 +122,7 @@ export class YtDlpEngine implements IMediaEngine {
     }
 
     return {
-      downloadId: request.url,
+      downloadId,
       filePath,
       fileSize: finalMetadata.filesize || finalMetadata.filesize_approx || 0,
       duration: finalMetadata.duration || null,

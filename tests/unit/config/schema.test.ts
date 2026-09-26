@@ -19,6 +19,7 @@ describe('parseConfig', () => {
     ytdlpPath: null,
     ffmpegPath: null,
     ffprobePath: null,
+    denoPath: null,
   };
 
   it('parses a valid config', () => {

@@ -27,8 +27,14 @@ export interface IDiagnosticsReport {
     path: string;
     details?: string;
   };
+  extractor?: {
+    status: 'ok' | 'error' | 'not_tested';
+    details: string;
+  };
   isHealthy: boolean;
 }
+
+import type { IMediaEngine } from './interfaces/IMediaEngine.js';
 
 export class DiagnosticsRunner {
   constructor(
@@ -36,7 +42,8 @@ export class DiagnosticsRunner {
     private readonly fileSystem: IFileSystem,
     private readonly configManager: ConfigManager,
     private readonly configPath: string,
-    private readonly historyPath: string
+    private readonly historyPath: string,
+    private readonly mediaEngine?: IMediaEngine
   ) {}
 
   async run(targetUrl?: string): Promise<IDiagnosticsReport> {
@@ -98,11 +105,22 @@ export class DiagnosticsRunner {
       }
     }
 
+    let extractorResult: IDiagnosticsReport['extractor'] = { status: 'not_tested', details: 'No URL provided' };
+
     if (networkResult.status === 'ok' && targetUrl) {
       const platformCheck = await this.checkUrlReachability(targetUrl);
       if (!platformCheck) {
         networkResult.status = 'platform_unreachable';
         networkResult.details = `Target URL ${targetUrl} is unreachable`;
+        extractorResult = { status: 'error', details: 'Network unreachable' };
+      } else if (this.mediaEngine) {
+        extractorResult = { status: 'ok', details: 'Analyzing...' };
+        try {
+          await this.mediaEngine.analyze(targetUrl);
+          extractorResult = { status: 'ok', details: 'Extractor successfully analyzed URL' };
+        } catch (e: any) {
+          extractorResult = { status: 'error', details: 'Extractor failed: ' + e.message };
+        }
       }
     }
 
@@ -111,7 +129,8 @@ export class DiagnosticsRunner {
       networkResult.status === 'ok' && 
       outputDirResult.status === 'ok' && 
       configResult.status === 'ok' &&
-      historyResult.status === 'ok';
+      historyResult.status === 'ok' &&
+      (extractorResult.status === 'ok' || extractorResult.status === 'not_tested');
 
     return {
       dependencies,
@@ -119,6 +138,7 @@ export class DiagnosticsRunner {
       outputDir: outputDirResult,
       config: configResult,
       history: historyResult,
+      extractor: extractorResult,
       isHealthy,
     };
   }

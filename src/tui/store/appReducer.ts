@@ -1,5 +1,5 @@
 import type { AppEvent } from '@nazzel/domain/events.js';
-import type { IDownloadProgress, IMediaInfo, IDownloadResult } from '@nazzel/domain/types.js';
+import type { IDownloadProgress, IMediaInfo, IDownloadResult, IDependencyReport } from '@nazzel/domain/types.js';
 import type { AppError } from '@nazzel/domain/errors.js';
 
 export type AppScreen =
@@ -11,7 +11,10 @@ export type AppScreen =
   | 'COMPLETED'
   | 'ERROR'
   | 'RECOVERING'
-  | 'DIAGNOSTICS';
+  | 'DIAGNOSTICS'
+  | 'HISTORY'
+  | 'CHECKING_ENV'
+  | 'REPAIRING';
 
 export interface AppState {
   screen: AppScreen;
@@ -23,6 +26,8 @@ export interface AppState {
   result: IDownloadResult | null;
   error: AppError | null;
   recovery: { attempt: number; maxAttempts: number } | null;
+  dependencyReport: IDependencyReport | null;
+  repairProgress: { name: string; downloaded: number; total: number | undefined } | null;
 }
 
 export const initialState: AppState = {
@@ -35,16 +40,22 @@ export const initialState: AppState = {
   result: null,
   error: null,
   recovery: null,
+  dependencyReport: null,
+  repairProgress: null,
 };
 
 // UI-specific action types that don't come from the domain
 export type UIAction =
-  | { type: 'UI_SUBMIT_URL'; url: string }
+  | { type: 'UI_SUBMIT_URL'; url: string; downloadId: string }
   | { type: 'UI_SHOW_FORMATS'; info: IMediaInfo }
   | { type: 'UI_FORMAT_SELECTED'; formatId: string } // Doesn't transition immediately, waits for DOWNLOAD_QUEUED/STARTED
   | { type: 'UI_RESTART' }
   | { type: 'UI_TOGGLE_DIAGNOSTICS' }
-  | { type: 'UI_VERIFYING' }; // TUI synthetic state to show verification spinner
+  | { type: 'UI_TOGGLE_HISTORY' }
+  | { type: 'UI_VERIFYING' }
+  | { type: 'UI_CHECKING_ENV' }
+  | { type: 'UI_REPAIRING'; report: IDependencyReport }
+  | { type: 'UI_REPAIR_PROGRESS'; name: string; downloaded: number; total: number | undefined };
 
 export type Action = AppEvent | UIAction;
 
@@ -58,6 +69,7 @@ export function appReducer(state: AppState, action: Action): AppState {
         ...initialState,
         screen: 'ANALYZING',
         url: action.url,
+        downloadId: action.downloadId,
       };
 
     case 'UI_SHOW_FORMATS':
@@ -87,10 +99,45 @@ export function appReducer(state: AppState, action: Action): AppState {
         };
       }
 
+    case 'UI_TOGGLE_HISTORY':
+      if (state.screen === 'HISTORY') {
+        return {
+          ...state,
+          screen: state.previousScreen || 'HOME',
+          previousScreen: null,
+        };
+      } else {
+        return {
+          ...state,
+          previousScreen: state.screen,
+          screen: 'HISTORY',
+        };
+      }
+
     case 'UI_VERIFYING':
       return {
         ...state,
         screen: 'VERIFYING',
+      };
+
+    case 'UI_CHECKING_ENV':
+      return {
+        ...state,
+        screen: 'CHECKING_ENV',
+      };
+
+    case 'UI_REPAIRING':
+      return {
+        ...state,
+        screen: 'REPAIRING',
+        dependencyReport: action.report,
+        repairProgress: null,
+      };
+
+    case 'UI_REPAIR_PROGRESS':
+      return {
+        ...state,
+        repairProgress: { name: action.name, downloaded: action.downloaded, total: action.total },
       };
 
     // -------------------------------------------------------------------------

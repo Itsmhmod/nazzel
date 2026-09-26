@@ -1,9 +1,11 @@
 import type { AppEvent } from '@nazzel/domain/events.js';
 import { getLogger } from '@nazzel/shared/logger.js';
 
-export type EventCallback = (event: AppEvent) => void;
+import type { IAppEventBus, EventCallback } from './interfaces/IAppEventBus.js';
 
-export class AppEventBus {
+export { EventCallback };
+
+export class AppEventBus implements IAppEventBus {
   private subscribers: Set<EventCallback>;
 
   constructor() {

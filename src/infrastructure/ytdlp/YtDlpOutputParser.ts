@@ -65,6 +65,7 @@ export class YtDlpOutputParser {
         downloaded: raw.downloaded === 'NA' ? 0 : Number(raw.downloaded),
         total: raw.total === 'NA' ? null : Number(raw.total),
         phase: 'downloading',
+        activeFile: raw.filename && raw.filename !== 'NA' ? raw.filename : undefined,
       };
 
       if (fragment) {

@@ -53,5 +53,19 @@ describe('YtDlpEngine', () => {
         expect.objectContaining({ code: 'EXTRACTOR_FAILURE' })
       );
     });
+    it('passes jsRuntimeBin explicitly when provided', async () => {
+      runner.run.mockResolvedValueOnce({
+        exitCode: 0,
+        stdout: JSON.stringify({ id: '123', formats: [] }),
+        stderr: '',
+      });
+
+      const explicitEngine = new YtDlpEngine(runner, 'yt-dlp', undefined, '/path/to/deno');
+      await explicitEngine.analyze('https://test.com');
+      
+      expect(runner.run).toHaveBeenCalledWith(expect.objectContaining({
+        args: expect.arrayContaining(['--js-runtimes', 'deno:/path/to/deno'])
+      }));
+    });
   });
 });

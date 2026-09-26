@@ -26,6 +26,7 @@ export const NazzelConfigSchema = z
     ytdlpPath: z.string().min(1).nullable(),
     ffmpegPath: z.string().min(1).nullable(),
     ffprobePath: z.string().min(1).nullable(),
+    denoPath: z.string().min(1).nullable(),
   })
   .strict(); // Reject unknown keys
 

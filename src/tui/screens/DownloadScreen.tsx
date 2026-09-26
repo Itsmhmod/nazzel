@@ -59,22 +59,31 @@ export function DownloadScreen({ title, progress, onCancel }: DownloadScreenProp
       </Box>
 
       {phase === 'merging' || phase === 'converting' ? (
-        <Box marginBottom={1}>
+        <Box marginBottom={1} padding={1} borderStyle="round" borderColor={theme.info}>
           <Text color={theme.info}>Processing media (merging/converting)...</Text>
         </Box>
       ) : (
-        <Box flexDirection="column" marginBottom={1}>
+        <Box flexDirection="column" marginBottom={1} padding={1} borderStyle="round" borderColor={theme.primary}>
           <Box marginBottom={1} flexDirection={isNarrow ? 'column' : 'row'}>
             <ProgressBar percent={pct} width={barWidth} />
             <Box marginLeft={isNarrow ? 0 : 2} marginTop={isNarrow ? 1 : 0}>
-              <Text color={theme.primary}>{pct.toFixed(1)}%</Text>
+              <Text color={theme.primary} bold>{pct.toFixed(1)}%</Text>
             </Box>
           </Box>
           
           <Box flexDirection={isNarrow ? 'column' : 'row'} justifyContent="space-between">
-            <Text color={theme.muted}>{speedStr}</Text>
-            <Text color={theme.muted}>{fracStr}</Text>
-            <Text color={theme.muted}>{etaStr}</Text>
+            <Box>
+              <Text color={theme.muted}>SPEED: </Text>
+              <Text color={theme.text} bold>{speedStr}</Text>
+            </Box>
+            <Box>
+              <Text color={theme.muted}>SIZE: </Text>
+              <Text color={theme.text} bold>{fracStr}</Text>
+            </Box>
+            <Box>
+              <Text color={theme.muted}>ETA: </Text>
+              <Text color={theme.highlight} bold>{etaStr}</Text>
+            </Box>
           </Box>
         </Box>
       )}

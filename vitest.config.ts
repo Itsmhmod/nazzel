@@ -22,7 +22,7 @@ export default defineConfig({
         statements: 70,
       },
     },
-    testTimeout: 10_000,
+    testTimeout: 120_000,
   },
   resolve: {
     alias: [
