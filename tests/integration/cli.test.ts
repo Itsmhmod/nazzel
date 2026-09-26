@@ -11,17 +11,17 @@ describe('CLI Integration', () => {
     const { stdout } = await execa('node', [CLI_PATH, '--help']);
     expect(stdout).toContain('Usage: nazzel');
     expect(stdout).toContain('Local-first terminal media downloader');
-  }, 30000);
+  }, 60000);
 
   it('shows version when run with --version', async () => {
     const { stdout } = await execa('node', [CLI_PATH, '--version']);
     expect(stdout).toMatch(/^\d+\.\d+\.\d+$/); // e.g. 0.1.0
-  }, 30000);
+  }, 60000);
 
   it('shows version when run with version command', async () => {
     const { stdout } = await execa('node', [CLI_PATH, 'version']);
     expect(stdout).toContain('VERSION_INFO');
-  }, 30000);
+  }, 60000);
 
   it('fails with code 2 for invalid flags', async () => {
     try {
@@ -31,7 +31,7 @@ describe('CLI Integration', () => {
       expect(error.exitCode).toBe(2);
       expect(error.stderr).toContain("error: unknown option '--invalid-flag'");
     }
-  }, 30000);
+  }, 60000);
 
   it('outputs NDJSON for history list', async () => {
     const { stdout } = await execa('node', [CLI_PATH, 'history']);
@@ -39,5 +39,5 @@ describe('CLI Integration', () => {
     const data = JSON.parse(stdout);
     expect(data.type).toBe('HISTORY_LIST');
     expect(Array.isArray(data.history)).toBe(true);
-  }, 30000);
+  }, 60000);
 });

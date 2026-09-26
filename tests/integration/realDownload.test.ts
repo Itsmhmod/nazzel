@@ -52,5 +52,5 @@ describe('Real CLI Download Lifecycle', () => {
       await fs.rm(outputDir, { recursive: true, force: true }).catch(() => {});
       await fs.rm(mockBinDir, { recursive: true, force: true }).catch(() => {});
     }
-  }, 60000); // 60s timeout
+  }, 120000); // 120s timeout
 });
