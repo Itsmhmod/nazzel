@@ -15,7 +15,7 @@ import { Downloader } from './Downloader.js';
 import * as path from 'path';
 import * as os from 'os';
 import envPaths from 'env-paths';
-import extractZip from 'extract-zip';
+import { SafeZipExtractor } from './SafeZipExtractor.js';
 
 const paths = envPaths('nazzel', { suffix: '' });
 const MIN_YTDLP_DATE = '20231000'; // YYYYMMDD
@@ -188,14 +188,22 @@ export class DependencyManager implements IDependencyManager {
     }
     else { platform = 'linux64'; ext = '.tar.xz'; }
 
-    const assetNamePrefix = `ffmpeg-master-latest-${platform}-gpl`;
+    // On Windows we use the gpl-shared variant which ships BOTH ffmpeg.exe and ffprobe.exe.
+    // The gpl (static) variant only ships ffmpeg.exe as of current BtbN packaging.
+    // On Linux the tar.xz gpl static build includes both ffmpeg and ffprobe.
+    const variant = this.isWindows ? 'gpl-shared' : 'gpl';
+    const assetNamePrefix = `ffmpeg-master-latest-${platform}-${variant}`;
     const assetName = `${assetNamePrefix}${ext}`;
 
     const release = await GithubReleaseProvider.getLatestRelease('BtbN/FFmpeg-Builds');
     const asset = release.assets.find(a => a.name === assetName);
-    if (!asset) {throw new AppError('NETWORK_FAILURE', `Could not find FFmpeg release for ${platform}`);}
+    if (!asset) {throw new AppError('NETWORK_FAILURE', `Could not find FFmpeg release for ${platform} (${variant})`);}
 
-    const checksumsAsset = release.assets.find(a => a.name === 'sha256.txt' || a.name.endsWith('.sha256'));
+    // BtbN publishes a single 'checksums.sha256' file covering all assets.
+    // Also accept legacy 'sha256.txt' and any *.sha256 suffix for future-proofing.
+    const checksumsAsset = release.assets.find(a =>
+      a.name === 'checksums.sha256' || a.name === 'sha256.txt' || a.name.endsWith('.sha256')
+    );
     let expectedSha: string | undefined;
     if (checksumsAsset) {
       const checksums = await GithubReleaseProvider.downloadChecksums(checksumsAsset.browser_download_url);
@@ -214,7 +222,7 @@ export class DependencyManager implements IDependencyManager {
     await this.fileSystem.delete(extractDir).catch(() => {});
     
     if (ext === '.zip') {
-      await extractZip(tempArchive, { dir: extractDir });
+      await SafeZipExtractor.extract({ sourceZip: tempArchive, targetDir: extractDir });
     } else {
       await this.fileSystem.ensureDir(extractDir);
       
@@ -247,12 +255,27 @@ export class DependencyManager implements IDependencyManager {
     const tempFfmpeg = path.join(binSubdir, ffmpegExe);
     const tempFfprobe = path.join(binSubdir, ffprobeExe);
 
+    // Archive content validation: ensure both required executables exist before proceeding.
+    // This catches archives that are missing ffprobe (e.g., wrong BtbN variant) early and
+    // emits an accurate error rather than a misleading 'symlink escape' error.
+    const ffmpegStat = await this.fileSystem.stat(tempFfmpeg).catch(() => null);
+    const ffprobeStat = await this.fileSystem.stat(tempFfprobe).catch(() => null);
+    if (!ffmpegStat || !ffmpegStat.isFile) {
+      await this.fileSystem.delete(tempArchive).catch(() => {});
+      await this.fileSystem.delete(extractDir).catch(() => {});
+      throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive is missing required executable: ${ffmpegExe}. Verify the selected BtbN variant includes both ffmpeg and ffprobe.`);
+    }
+    if (!ffprobeStat || !ffprobeStat.isFile) {
+      await this.fileSystem.delete(tempArchive).catch(() => {});
+      await this.fileSystem.delete(extractDir).catch(() => {});
+      throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive is missing required executable: ${ffprobeExe}. The selected BtbN variant must include both ffmpeg and ffprobe.`);
+    }
+
     if (!this.isWindows) {
       await this.runner.run({ bin: 'chmod', args: ['+x', tempFfmpeg, tempFfprobe] });
     }
 
-    // Validation
-    // Security: Ensure extracted files are actually inside our staging directory and not escaped via symlink
+    // Security: Ensure extracted files are actually inside our staging directory and not escaped via symlink.
     const realExtractDir = await this.fileSystem.realpath(extractDir).catch(() => null);
     const realFfmpeg = await this.fileSystem.realpath(tempFfmpeg).catch(() => null);
     const realFfprobe = await this.fileSystem.realpath(tempFfprobe).catch(() => null);
@@ -271,14 +294,11 @@ export class DependencyManager implements IDependencyManager {
        throw new AppError('DEPENDENCY_INSTALL_FAILED', 'Downloaded FFmpeg binaries failed execution test.');
     }
 
-    const finalFfmpeg = path.join(this.managedBinDir, ffmpegExe);
-    const finalFfprobe = path.join(this.managedBinDir, ffprobeExe);
-    
-    const oldFfmpeg = path.join(this.managedBinDir, `${ffmpegExe}.old`);
-    const oldFfprobe = path.join(this.managedBinDir, `${ffprobeExe}.old`);
+    // Activate the entire package as one logical unit
+    const finalPkg = path.join(this.managedBinDir, 'ffmpeg_pkg');
+    const oldPkg = path.join(this.managedBinDir, 'ffmpeg_pkg.old');
 
-    await this.atomicSwap(tempFfmpeg, finalFfmpeg, oldFfmpeg);
-    await this.atomicSwap(tempFfprobe, finalFfprobe, oldFfprobe);
+    await this.atomicSwap(binSubdir, finalPkg, oldPkg);
 
     await this.fileSystem.delete(tempArchive).catch(() => {});
     await this.fileSystem.delete(extractDir).catch(() => {});
@@ -286,19 +306,19 @@ export class DependencyManager implements IDependencyManager {
     return true;
   }
 
-  private async atomicSwap(tempBin: string, finalBin: string, oldBin: string) {
+  private async atomicSwap(tempPath: string, finalPath: string, oldPath: string) {
     try {
-      await this.fileSystem.delete(oldBin);
+      await this.fileSystem.delete(oldPath);
     } catch {}
 
     try {
-      const stats = await this.fileSystem.stat(finalBin);
-      if (stats.isFile) {
-        await this.runner.run({ bin: this.isWindows ? 'cmd' : 'mv', args: this.isWindows ? ['/c', 'move', '/y', finalBin, oldBin] : [finalBin, oldBin] });
+      const stats = await this.fileSystem.stat(finalPath);
+      if (stats.isFile || stats.isDirectory) {
+        await this.runner.run({ bin: this.isWindows ? 'cmd' : 'mv', args: this.isWindows ? ['/c', 'move', '/y', finalPath, oldPath] : [finalPath, oldPath] });
       }
     } catch {}
 
-    await this.runner.run({ bin: this.isWindows ? 'cmd' : 'mv', args: this.isWindows ? ['/c', 'move', '/y', tempBin, finalBin] : [tempBin, finalBin] });
+    await this.runner.run({ bin: this.isWindows ? 'cmd' : 'mv', args: this.isWindows ? ['/c', 'move', '/y', tempPath, finalPath] : [tempPath, finalPath] });
   }
 
   private getSource(binPath: string, configOverride?: string | null): 'config' | 'managed' | 'system' {
@@ -339,7 +359,8 @@ export class DependencyManager implements IDependencyManager {
   private async detectFFmpeg(): Promise<IDependencyStatus> {
     const pathsToTry = [
       this.config.ffmpegPath,
-      path.join(this.managedBinDir, this.isWindows ? 'ffmpeg.exe' : 'ffmpeg'),
+      path.join(this.managedBinDir, 'ffmpeg_pkg', this.isWindows ? 'ffmpeg.exe' : 'ffmpeg'),
+      path.join(this.managedBinDir, this.isWindows ? 'ffmpeg.exe' : 'ffmpeg'), // Legacy path fallback
       'ffmpeg'
     ].filter(Boolean) as string[];
 
@@ -365,7 +386,8 @@ export class DependencyManager implements IDependencyManager {
   private async detectFFprobe(): Promise<IDependencyStatus> {
     const pathsToTry = [
       this.config.ffprobePath,
-      path.join(this.managedBinDir, this.isWindows ? 'ffprobe.exe' : 'ffprobe'),
+      path.join(this.managedBinDir, 'ffmpeg_pkg', this.isWindows ? 'ffprobe.exe' : 'ffprobe'),
+      path.join(this.managedBinDir, this.isWindows ? 'ffprobe.exe' : 'ffprobe'), // Legacy path fallback
       'ffprobe'
     ].filter(Boolean) as string[];
 
@@ -535,7 +557,7 @@ export class DependencyManager implements IDependencyManager {
 
     const extractDir = path.join(tempDir, `deno-${platform}-${arch}`);
     await this.fileSystem.delete(extractDir).catch(() => {});
-    await extractZip(tempArchive, { dir: extractDir });
+    await SafeZipExtractor.extract({ sourceZip: tempArchive, targetDir: extractDir });
 
     const denoExe = platform === 'win32' ? 'deno.exe' : 'deno';
     const tempDeno = path.join(extractDir, denoExe);

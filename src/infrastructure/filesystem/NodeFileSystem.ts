@@ -52,7 +52,7 @@ export class NodeFileSystem implements IFileSystem {
 
   async delete(filePath: string): Promise<void> {
     try {
-      await fs.unlink(filePath);
+      await fs.rm(filePath, { recursive: true, force: true });
     } catch (error: any) {
       if (error.code !== 'ENOENT') {
         throw AppError.from('FS_WRITE_FAILED', error, { filePath, action: 'delete' });

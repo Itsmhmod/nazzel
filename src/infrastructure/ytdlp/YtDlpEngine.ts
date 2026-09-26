@@ -17,7 +17,8 @@ export class YtDlpEngine implements IMediaEngine {
     private readonly runner: IProcessRunner,
     private readonly ytdlpBin: string,
     private readonly ffprobeRunner?: import('../../application/interfaces/IFfprobeRunner.js').IFfprobeRunner,
-    private readonly jsRuntimeBin: string | null = null
+    private readonly jsRuntimeBin: string | null = null,
+    private readonly ffmpegBin: string | null = null
   ) {}
 
   private getJsRuntimeArgs(): string[] {
@@ -61,6 +62,10 @@ export class YtDlpEngine implements IMediaEngine {
       '-o', outputTemplate,
       ...this.getJsRuntimeArgs()
     ];
+
+    if (this.ffmpegBin) {
+      args.push('--ffmpeg-location', this.ffmpegBin);
+    }
 
     if (request.audioOnly) {
       args.push('--extract-audio');

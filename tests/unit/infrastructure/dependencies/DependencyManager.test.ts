@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DependencyManager } from '../../../../src/infrastructure/dependencies/DependencyManager.js';
 import { GithubReleaseProvider } from '../../../../src/infrastructure/dependencies/GithubReleaseProvider.js';
 import { Downloader } from '../../../../src/infrastructure/dependencies/Downloader.js';
+import { SafeZipExtractor } from '../../../../src/infrastructure/dependencies/SafeZipExtractor.js';
 import type { IProcessRunner } from '../../../../src/application/interfaces/IProcessRunner.js';
 import type { IFileSystem } from '../../../../src/application/interfaces/IFileSystem.js';
 import type { INazzelConfig } from '../../../../src/domain/types.js';
@@ -9,7 +10,7 @@ import * as path from 'path';
 
 vi.mock('../../../../src/infrastructure/dependencies/GithubReleaseProvider.js');
 vi.mock('../../../../src/infrastructure/dependencies/Downloader.js');
-vi.mock('extract-zip', () => ({ default: vi.fn().mockResolvedValue(undefined) }));
+vi.mock('../../../../src/infrastructure/dependencies/SafeZipExtractor.js');
 
 describe('DependencyManager', () => {
   let runner: vi.Mocked<IProcessRunner>;
@@ -175,14 +176,24 @@ describe('DependencyManager', () => {
 
   describe('install ffmpeg', () => {
     beforeEach(() => {
+      // Default: mock as Linux (non-Windows) so existing Linux-path tests still work.
+      // Windows-specific tests override isWindows explicitly.
       vi.mocked(GithubReleaseProvider.getLatestRelease).mockResolvedValue({
         assets: [
-          { name: 'ffmpeg-master-latest-linux64-gpl.tar.xz', browser_download_url: 'http://url/linux' },
-          { name: 'sha256.txt', browser_download_url: 'http://url/sha' }
+          // Linux asset (used when isWindows = false)
+          { name: 'ffmpeg-master-latest-linux64-gpl.tar.xz', browser_download_url: 'http://url/linux.tar.xz' },
+          // Windows x64 gpl-shared asset (used when isWindows = true)
+          { name: 'ffmpeg-master-latest-win64-gpl-shared.zip', browser_download_url: 'http://url/win64.zip' },
+          // Windows ARM64 gpl-shared asset
+          { name: 'ffmpeg-master-latest-winarm64-gpl-shared.zip', browser_download_url: 'http://url/winarm64.zip' },
+          // BtbN's actual checksum file name
+          { name: 'checksums.sha256', browser_download_url: 'http://url/checksums.sha256' },
         ]
       } as any);
       vi.mocked(GithubReleaseProvider.downloadChecksums).mockResolvedValue({
-        'ffmpeg-master-latest-linux64-gpl.tar.xz': 'abc123def'
+        'ffmpeg-master-latest-linux64-gpl.tar.xz': 'abc123def',
+        'ffmpeg-master-latest-win64-gpl-shared.zip': 'def456abc',
+        'ffmpeg-master-latest-winarm64-gpl-shared.zip': 'ghi789xyz',
       });
     });
 
@@ -192,6 +203,43 @@ describe('DependencyManager', () => {
       Object.defineProperty(process, 'platform', { value: 'darwin' });
       await expect(manager.install('ffmpeg')).rejects.toThrow('macOS managed FFmpeg installation is not supported by BtbN. Please install ffmpeg via Homebrew.');
       Object.defineProperty(process, 'platform', { value: originalPlatform });
+    });
+
+    it('uses checksums.sha256 as the BtbN checksum file (Linux)', async () => {
+      // Verify the correct checksum key is used for the Linux asset
+      runner.run.mockImplementation(async (args) => {
+        if (args.bin === 'tar' && args.args?.includes('-tf')) {
+          return { exitCode: 0, stdout: 'ffmpeg-master-latest-linux64-gpl/bin/ffmpeg\nffmpeg-master-latest-linux64-gpl/bin/ffprobe', stderr: '' };
+        }
+        if (args.bin === 'tar') {return { exitCode: 0, stdout: '', stderr: '' };}
+        if (args.args?.includes('-version')) {return { exitCode: 0, stdout: 'ffmpeg version 6.0', stderr: '' };}
+        return { exitCode: 0, stdout: '', stderr: '' };
+      });
+      fileSystem.stat.mockResolvedValue({ isFile: true } as any);
+
+      await manager.install('ffmpeg');
+
+      // Should have downloaded with the sha256 from checksums.sha256 for the Linux asset
+      expect(Downloader.downloadFile).toHaveBeenCalledWith(expect.objectContaining({
+        expectedSha256: 'abc123def'
+      }));
+    });
+
+    it('selects gpl-shared variant for Windows and uses its checksum', async () => {
+      (manager as any).isWindows = true;
+      runner.run.mockImplementation(async (args) => {
+        if (args.args?.includes('-version')) {return { exitCode: 0, stdout: 'ffmpeg version 6.0', stderr: '' };}
+        return { exitCode: 0, stdout: '', stderr: '' };
+      });
+      fileSystem.stat.mockResolvedValue({ isFile: true } as any);
+
+      await manager.install('ffmpeg');
+
+      // Must download the gpl-shared zip with its checksum
+      expect(Downloader.downloadFile).toHaveBeenCalledWith(expect.objectContaining({
+        url: 'http://url/win64.zip',
+        expectedSha256: 'def456abc'
+      }));
     });
 
     it('performs extraction and execution validation on Linux', async () => {
@@ -240,10 +288,51 @@ describe('DependencyManager', () => {
         if (args.args?.includes('-version')) {return { exitCode: 1, stdout: '', stderr: '' };}
         return { exitCode: 0, stdout: '', stderr: '' };
       });
+      fileSystem.stat.mockResolvedValue({ isFile: true } as any);
       
       await expect(manager.install('ffmpeg')).rejects.toThrow('Downloaded FFmpeg binaries failed execution test.');
       
       // Should cleanup temp archive and extract dir
+      expect(fileSystem.delete).toHaveBeenCalled();
+    });
+
+    it('fails before execution if archive is missing ffmpeg.exe (ffmpegStat is null)', async () => {
+      (manager as any).isWindows = true;
+      // First stat call (ffmpeg) returns null, second (ffprobe) not reached
+      fileSystem.stat
+        .mockResolvedValueOnce(null) // ffmpeg.exe missing
+        .mockResolvedValueOnce({ isFile: true } as any); // ffprobe.exe (never reached)
+
+      await expect(manager.install('ffmpeg')).rejects.toThrow(
+        'Archive is missing required executable: ffmpeg.exe'
+      );
+      // Staging files must be cleaned up
+      expect(fileSystem.delete).toHaveBeenCalled();
+    });
+
+    it('fails before execution if archive is missing ffprobe.exe (ffprobeStat is null)', async () => {
+      (manager as any).isWindows = true;
+      // First stat (ffmpeg) succeeds, second (ffprobe) returns null
+      fileSystem.stat
+        .mockResolvedValueOnce({ isFile: true } as any) // ffmpeg.exe present
+        .mockResolvedValueOnce(null); // ffprobe.exe missing
+
+      await expect(manager.install('ffmpeg')).rejects.toThrow(
+        'Archive is missing required executable: ffprobe.exe'
+      );
+      expect(fileSystem.delete).toHaveBeenCalled();
+    });
+
+    it('fails before execution if archive is missing ffprobe (isFile=false)', async () => {
+      (manager as any).isWindows = true;
+      // First stat (ffmpeg) is a file, second (ffprobe) is a directory (isFile=false)
+      fileSystem.stat
+        .mockResolvedValueOnce({ isFile: true } as any)  // ffmpeg.exe
+        .mockResolvedValueOnce({ isFile: false } as any); // ffprobe.exe is a dir (malformed archive)
+
+      await expect(manager.install('ffmpeg')).rejects.toThrow(
+        'Archive is missing required executable: ffprobe.exe'
+      );
       expect(fileSystem.delete).toHaveBeenCalled();
     });
 
@@ -258,7 +347,27 @@ describe('DependencyManager', () => {
       await expect(manager.install('ffmpeg')).rejects.toThrow('Archive rejected due to unsafe path traversal in contents.');
       expect(fileSystem.delete).toHaveBeenCalled();
     });
+
+    it('failed install cleans staging without touching pre-existing managed binaries', async () => {
+      (manager as any).isWindows = true;
+      // Simulate missing ffprobe — should clean up staging and NOT touch managed dir root files
+      fileSystem.stat
+        .mockResolvedValueOnce({ isFile: true } as any)  // ffmpeg.exe staged
+        .mockResolvedValueOnce(null);                    // ffprobe.exe missing in archive
+
+      await expect(manager.install('ffmpeg')).rejects.toThrow(
+        'Archive is missing required executable: ffprobe.exe'
+      );
+
+      // delete should only be called for staging (tempArchive + extractDir)
+      // not for the managed root dir binaries
+      const deleteCalls = (fileSystem.delete as ReturnType<typeof vi.fn>).mock.calls.map((c: unknown[]) => c[0] as string);
+      const managedBinDir = (manager as any).managedBinDir;
+      const rootDeletes = deleteCalls.filter((p: string) => p === path.join(managedBinDir, 'ffmpeg.exe') || p === path.join(managedBinDir, 'ffprobe.exe'));
+      expect(rootDeletes).toHaveLength(0);
+    });
   });
+
 
   describe('detect deno', () => {
     it('detects missing deno', async () => {
