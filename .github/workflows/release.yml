@@ -1,0 +1,273 @@
+name: Native Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write # required for provenance attestation
+  attestations: write # required for provenance attestation
+
+env:
+  NODE_SEA_VERSION: 26.10.0
+
+jobs:
+  validate-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate tag format and version
+        id: check
+        run: |
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG_NAME#v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$VERSION" != "$PKG_VERSION" ]; then
+            echo "Tag version ($VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+  build-sea:
+    needs: validate-tag
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            os: windows
+            arch: x64
+            ext: .exe
+            runner: windows-latest
+            smoke_test_youtube: true
+          - target: darwin-x64
+            os: darwin
+            arch: x64
+            ext: ""
+            runner: macos-13
+            smoke_test_youtube: false
+          - target: darwin-arm64
+            os: darwin
+            arch: arm64
+            ext: ""
+            runner: macos-14
+            smoke_test_youtube: false
+          - target: linux-x64
+            os: linux
+            arch: x64
+            ext: ""
+            runner: ubuntu-latest
+            smoke_test_youtube: false
+          - target: linux-arm64
+            os: linux
+            arch: arm64
+            ext: ""
+            runner: ubuntu-24.04-arm
+            smoke_test_youtube: false
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node (Application build)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and Bundle
+        run: |
+          npm run build
+          npm run bundle
+
+      - name: Download Node.js for SEA (v${{ env.NODE_SEA_VERSION }})
+        shell: bash
+        run: |
+          NODE_VERSION=${{ env.NODE_SEA_VERSION }}
+          OS=${{ matrix.os }}
+          ARCH=${{ matrix.arch }}
+          
+          if [ "$OS" == "windows" ]; then
+            FILE_NAME="node-v${NODE_VERSION}-win-${ARCH}.zip"
+            URL="https://nodejs.org/dist/v${NODE_VERSION}/${FILE_NAME}"
+            curl -LO $URL
+            unzip -q $FILE_NAME
+            NODE_EXE="$(pwd)/node-v${NODE_VERSION}-win-${ARCH}/node.exe"
+          elif [ "$OS" == "darwin" ]; then
+            FILE_NAME="node-v${NODE_VERSION}-darwin-${ARCH}.tar.gz"
+            URL="https://nodejs.org/dist/v${NODE_VERSION}/${FILE_NAME}"
+            curl -LO $URL
+            tar -xzf $FILE_NAME
+            NODE_EXE="$(pwd)/node-v${NODE_VERSION}-darwin-${ARCH}/bin/node"
+          elif [ "$OS" == "linux" ]; then
+            FILE_NAME="node-v${NODE_VERSION}-linux-${ARCH}.tar.gz"
+            URL="https://nodejs.org/dist/v${NODE_VERSION}/${FILE_NAME}"
+            curl -LO $URL
+            tar -xzf $FILE_NAME
+            NODE_EXE="$(pwd)/node-v${NODE_VERSION}-linux-${ARCH}/bin/node"
+          fi
+          
+          echo "NODE_EXE=$NODE_EXE" >> $GITHUB_ENV
+
+      - name: Generate SEA Config
+        shell: bash
+        run: |
+          OUTPUT_NAME="nazzel-${{ needs.validate-tag.outputs.version }}-${{ matrix.target }}${{ matrix.ext }}"
+          node -e "
+            const fs = require('fs');
+            const config = {
+              main: 'dist/bundle.mjs',
+              mainFormat: 'module',
+              useVfs: true,
+              useCodeCache: false,
+              useSnapshot: false,
+              output: process.env.OUTPUT_NAME,
+              disableExperimentalSEAWarning: true
+            };
+            fs.writeFileSync('sea-config.json', JSON.stringify(config, null, 2));
+          "
+          echo "OUTPUT_NAME=$OUTPUT_NAME" >> $GITHUB_ENV
+        env:
+          OUTPUT_NAME: nazzel-${{ needs.validate-tag.outputs.version }}-${{ matrix.target }}${{ matrix.ext }}
+
+      - name: Build SEA Binary
+        shell: bash
+        run: |
+          "$NODE_EXE" --build-sea sea-config.json
+          
+          if [ ! -f "$OUTPUT_NAME" ]; then
+            echo "Binary $OUTPUT_NAME was not generated."
+            exit 1
+          fi
+
+          if [ "${{ matrix.os }}" != "windows" ]; then
+            chmod +x "$OUTPUT_NAME"
+          fi
+
+          ls -lh "$OUTPUT_NAME"
+
+      - name: Smoke Tests (Basic)
+        shell: bash
+        run: |
+          ./$OUTPUT_NAME --version
+          ./$OUTPUT_NAME --help
+          ./$OUTPUT_NAME version
+          ./$OUTPUT_NAME doctor
+
+      - name: Smoke Tests (YouTube Real Download)
+        if: matrix.smoke_test_youtube == true
+        shell: bash
+        run: |
+          ./$OUTPUT_NAME "https://www.youtube.com/watch?v=jNQXAC9IVRw" --no-tui
+
+      - name: Generate Checksum
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" == "darwin" ]; then
+            shasum -a 256 "$OUTPUT_NAME" > "${OUTPUT_NAME}.sha256"
+          else
+            sha256sum "$OUTPUT_NAME" > "${OUTPUT_NAME}.sha256"
+          fi
+
+      - name: Security Check
+        shell: bash
+        run: |
+          mkdir release-artifacts
+          mv "$OUTPUT_NAME" release-artifacts/
+          mv "${OUTPUT_NAME}.sha256" release-artifacts/
+          
+          cd release-artifacts
+          if ls -A | grep -i "\.env\|config\.json\|history\.ndjson\|commads\.md"; then
+            echo "Security check failed: unwanted files found"
+            exit 1
+          fi
+          
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: release-artifacts/*
+          if-no-files-found: error
+          
+  finalize:
+    needs: [validate-tag, build-sea]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+          pattern: binary-*
+          merge-multiple: true
+
+      - name: Consolidate SHA256SUMS
+        run: |
+          cd all-artifacts
+          cat *.sha256 > SHA256SUMS
+          rm *.sha256
+          
+      - name: Generate Release Manifest
+        run: |
+          cd all-artifacts
+          VERSION="${{ needs.validate-tag.outputs.version }}"
+          COMMIT="${GITHUB_SHA}"
+          
+          cat <<EOF > release-manifest.json
+          {
+            "product": "nazzel",
+            "version": "$VERSION",
+            "commit": "$COMMIT",
+            "runtime": {
+              "node": "${{ env.NODE_SEA_VERSION }}"
+            },
+            "artifacts": []
+          }
+          EOF
+          
+          node <<'NODEJS'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const manifest = JSON.parse(fs.readFileSync('release-manifest.json'));
+          const files = fs.readdirSync('.').filter(f => f.startsWith('nazzel-') && !f.endsWith('.json') && !f.endsWith('.sha256') && f !== 'SHA256SUMS');
+          for (const file of files) {
+            const stats = fs.statSync(file);
+            const content = fs.readFileSync(file);
+            const hash = crypto.createHash('sha256').update(content).digest('hex');
+            const match = file.match(/nazzel-(.+?)-(.+?)-(.+?)(?:\.exe)?$/);
+            manifest.artifacts.push({
+              filename: file,
+              platform: match ? match[2] : 'unknown',
+              arch: match ? match[3] : 'unknown',
+              sha256: hash,
+              size: stats.size
+            });
+          }
+          fs.writeFileSync('release-manifest.json', JSON.stringify(manifest, null, 2));
+          NODEJS
+
+      - name: Attest Build Provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'all-artifacts/*'
+          
+      - name: Upload Final Consolidated Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-artifacts
+          path: all-artifacts/*
+          if-no-files-found: error
