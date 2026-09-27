@@ -38,7 +38,7 @@ describe('HomeScreen Component', () => {
 
   it('allows quitting via q', () => {
     const quitMock = vi.fn();
-    const { lastFrame } = render(
+    render(
       <HomeScreen onSubmit={vi.fn()} onShowDiagnostics={vi.fn()} onShowHistory={vi.fn()} onQuit={quitMock} />
     );
     triggerInput('q');
@@ -47,7 +47,7 @@ describe('HomeScreen Component', () => {
 
   it('allows showing diagnostics via d', () => {
     const diagMock = vi.fn();
-    const { lastFrame } = render(
+    render(
       <HomeScreen onSubmit={vi.fn()} onShowDiagnostics={diagMock} onShowHistory={vi.fn()} onQuit={vi.fn()} />
     );
     triggerInput('d');
@@ -56,7 +56,7 @@ describe('HomeScreen Component', () => {
 
   it('allows showing history via h', () => {
     const histMock = vi.fn();
-    const { lastFrame } = render(
+    render(
       <HomeScreen onSubmit={vi.fn()} onShowDiagnostics={vi.fn()} onShowHistory={histMock} onQuit={vi.fn()} />
     );
     triggerInput('h');
@@ -82,7 +82,7 @@ describe('HomeScreen Component', () => {
 
   it('submits valid URL on enter', () => {
     const submitMock = vi.fn();
-    const { lastFrame } = render(
+    render(
       <HomeScreen onSubmit={submitMock} onShowDiagnostics={vi.fn()} onShowHistory={vi.fn()} onQuit={vi.fn()} />
     );
     triggerInput('x');

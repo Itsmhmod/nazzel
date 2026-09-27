@@ -20,7 +20,7 @@ function triggerInput(input: string, key: any = {}) {
 }
 
 describe('FormatSelectionScreen Component', () => {
-  const mockMediaInfo = {
+  const mockMediaInfo: any = {
     title: 'Test Video',
     formats: [
       { formatId: 'f1', ext: 'mp4', resolution: '1080p', filesize: 10000000, isVideoOnly: false, isAudioOnly: false, vcodec: 'h264' },
@@ -31,7 +31,7 @@ describe('FormatSelectionScreen Component', () => {
 
   it('renders title and options', () => {
     const { lastFrame } = render(
-      <FormatSelectionScreen mediaInfo={mockMediaInfo} onSelect={vi.fn()} onCancel={vi.fn()} />
+      <FormatSelectionScreen mediaInfo={mockMediaInfo as any} onSelect={vi.fn()} onCancel={vi.fn()} />
     );
     
     const frame = lastFrame() || '';
@@ -47,8 +47,8 @@ describe('FormatSelectionScreen Component', () => {
 
   it('handles cancellation via Escape', () => {
     const cancelMock = vi.fn();
-    const { lastFrame } = render(
-      <FormatSelectionScreen mediaInfo={mockMediaInfo} onSelect={vi.fn()} onCancel={cancelMock} />
+    render(
+      <FormatSelectionScreen mediaInfo={mockMediaInfo as any} onSelect={vi.fn()} onCancel={cancelMock} />
     );
     triggerInput('', { escape: true }); // Escape
     expect(cancelMock).toHaveBeenCalled();
@@ -56,7 +56,7 @@ describe('FormatSelectionScreen Component', () => {
 
   it('handles selection via Enter', () => {
     const selectMock = vi.fn();
-    const { lastFrame } = render(
+    render(
       <FormatSelectionScreen mediaInfo={mockMediaInfo} onSelect={selectMock} onCancel={vi.fn()} />
     );
     triggerInput('', { return: true }); // Selects first option (Best Quality)
@@ -65,7 +65,7 @@ describe('FormatSelectionScreen Component', () => {
 
   it('handles navigation via Down arrow', () => {
     const selectMock = vi.fn();
-    const { lastFrame } = render(
+    render(
       <FormatSelectionScreen mediaInfo={mockMediaInfo} onSelect={selectMock} onCancel={vi.fn()} />
     );
     triggerInput('', { downArrow: true }); // Down arrow

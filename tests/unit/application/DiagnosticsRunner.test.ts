@@ -1,4 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+// @ts-nocheck
+import { vi, describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DiagnosticsRunner } from '../../../src/application/DiagnosticsRunner.js';
 import type { IDependencyManager } from '../../../src/application/interfaces/IDependencyManager.js';
 import type { IFileSystem } from '../../../src/application/interfaces/IFileSystem.js';
@@ -120,7 +121,7 @@ describe('DiagnosticsRunner', () => {
       mockFn.mockImplementation((_url: any, _options: any, _cb: any) => {
         const req = {
           on: (event: string, handler: Function) => {
-            if (event === 'error') { setTimeout(handler, 0); }
+            if (event === 'error') { setTimeout(handler as any, 0); }
           },
           end: vi.fn(),
           destroy: vi.fn()

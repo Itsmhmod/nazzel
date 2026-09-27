@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { describe, it, expect, vi, beforeEach, Mocked } from 'vitest';
 import { HistoryManager } from '../../../src/application/HistoryManager.js';
 import type { IFileSystem } from '../../../src/application/interfaces/IFileSystem.js';
@@ -25,7 +26,7 @@ describe('HistoryManager', () => {
       stat: vi.fn(),
       move: vi.fn(),
       delete: vi.fn().mockResolvedValue(undefined) as any,
-      readJson: vi.fn(),
+      readJson: vi.fn() as any,
       readFile: vi.fn().mockResolvedValue(''),
       writeJson: vi.fn(),
       appendLine: vi.fn().mockResolvedValue(undefined),

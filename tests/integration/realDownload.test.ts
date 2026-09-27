@@ -20,7 +20,7 @@ describe('Real CLI Download Lifecycle', () => {
     await fs.writeFile(mockFfprobePath, `@echo off\necho {"format":{"duration":"10","size":"1000000","bit_rate":"800000","format_name":"mp4"},"streams":[]}\n`);
 
     // Ensure our mock ffprobe is in PATH
-    const env = { ...process.env, PATH: `${mockBinDir};${process.env.PATH}` };
+    const env = { ...process.env, PATH: `${mockBinDir};${process.env['PATH']}` };
 
     try {
       const { stdout, exitCode } = await execa('node', [

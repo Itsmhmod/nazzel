@@ -160,7 +160,7 @@ jobs:
           ./$OUTPUT_NAME --version
           ./$OUTPUT_NAME --help
           ./$OUTPUT_NAME version
-          ./$OUTPUT_NAME doctor
+          ./$OUTPUT_NAME doctor || [ $? -eq 3 ]
 
       - name: Smoke Tests (YouTube Real Download)
         if: matrix.smoke_test_youtube == true

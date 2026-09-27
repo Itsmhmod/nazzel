@@ -31,7 +31,7 @@ describe('DownloadScreen Component', () => {
     };
     
     const { lastFrame } = render(
-      <DownloadScreen title="My Cool Video" progress={progress} onCancel={vi.fn()} />
+      <DownloadScreen title="My Cool Video" progress={progress as any} onCancel={vi.fn()} />
     );
     
     const frame = lastFrame() || '';
@@ -52,7 +52,7 @@ describe('DownloadScreen Component', () => {
     };
     
     const { lastFrame } = render(
-      <DownloadScreen title="My Cool Video" progress={progress} onCancel={vi.fn()} />
+      <DownloadScreen title="My Cool Video" progress={progress as any} onCancel={vi.fn()} />
     );
     
     const frame = lastFrame() || '';
@@ -61,7 +61,7 @@ describe('DownloadScreen Component', () => {
 
   it('handles cancellation', () => {
     const cancelMock = vi.fn();
-    const { lastFrame } = render(
+    render(
       <DownloadScreen progress={null} onCancel={cancelMock} />
     );
     triggerInput('q');

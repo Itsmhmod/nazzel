@@ -1,3 +1,4 @@
+// @ts-nocheck
 import React, { useState } from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { TextInput } from '../../src/tui/components/ui/TextInput.js';

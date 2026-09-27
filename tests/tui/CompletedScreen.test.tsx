@@ -29,7 +29,7 @@ describe('CompletedScreen Component', () => {
     };
     
     const { lastFrame } = render(
-      <CompletedScreen title="Test Finished Video" result={result} onRestart={vi.fn()} onQuit={vi.fn()} />
+      <CompletedScreen title="Test Finished Video" result={result as any} onRestart={vi.fn()} onQuit={vi.fn()} />
     );
     
     const frame = lastFrame() || '';
@@ -42,7 +42,7 @@ describe('CompletedScreen Component', () => {
 
   it('handles quit via q', () => {
     const quitMock = vi.fn();
-    const { lastFrame } = render(
+    render(
       <CompletedScreen title="Done" result={null} onRestart={vi.fn()} onQuit={quitMock} />
     );
     triggerInput('q');
@@ -51,7 +51,7 @@ describe('CompletedScreen Component', () => {
 
   it('handles restart via r', () => {
     const restartMock = vi.fn();
-    const { lastFrame } = render(
+    render(
       <CompletedScreen title="Done" result={null} onRestart={restartMock} onQuit={vi.fn()} />
     );
     triggerInput('r');

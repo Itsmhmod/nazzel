@@ -4,7 +4,7 @@ import type { AppEvent } from '@nazzel/domain/events.js';
 
 describe('TUI AppReducer', () => {
   it('should transition from HOME to ANALYZING on UI_SUBMIT_URL', () => {
-    const state = appReducer(initialState, { type: 'UI_SUBMIT_URL', url: 'http://test' });
+    const state = appReducer(initialState, { type: 'UI_SUBMIT_URL', url: 'http://test', downloadId: 'test' });
     expect(state.screen).toBe('ANALYZING');
     expect(state.url).toBe('http://test');
   });
