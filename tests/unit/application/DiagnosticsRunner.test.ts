@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { vi, describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DiagnosticsRunner } from '../../../src/application/DiagnosticsRunner.js';
 import type { IDependencyManager } from '../../../src/application/interfaces/IDependencyManager.js';

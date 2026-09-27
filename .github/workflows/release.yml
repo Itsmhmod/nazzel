@@ -154,24 +154,26 @@ jobs:
 
           ls -lh "$OUTPUT_NAME"
 
-      - name: Smoke Tests (Basic)
+      - name: Smoke Tests (Offline)
         shell: bash
         run: |
           ./$OUTPUT_NAME --version
           ./$OUTPUT_NAME --help
           ./$OUTPUT_NAME version
-          ./$OUTPUT_NAME doctor || [ $? -eq 3 ]
+          ./$OUTPUT_NAME config
+          ./$OUTPUT_NAME history
+          
+          # Doctor offline test
+          # Exit code 3 is expected because dependencies (ffmpeg/yt-dlp) are not installed offline
+          set +e
+          ./$OUTPUT_NAME doctor
+          DOC_EXIT=$?
+          set -e
+          if [ $DOC_EXIT -ne 3 ]; then
+            echo "Expected doctor to exit with 3 (missing deps), but got $DOC_EXIT"
+            exit 1
+          fi
 
-      - name: Smoke Tests (YouTube Real Download)
-        if: matrix.smoke_test_youtube == true
-        shell: bash
-        run: |
-          set -o pipefail
-          ./$OUTPUT_NAME "https://www.youtube.com/watch?v=jNQXAC9IVRw" --no-tui 2>&1 | tee smoke_log.txt || EXIT_CODE=$?
-          echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
-          cat smoke_log.txt >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-          if [ -n "$EXIT_CODE" ] && [ "$EXIT_CODE" != "0" ]; then exit $EXIT_CODE; fi
       - name: Generate Checksum
         shell: bash
         run: |
@@ -275,3 +277,32 @@ jobs:
           name: release-artifacts
           path: all-artifacts/*
           if-no-files-found: error
+
+  external-validation:
+    needs: [build-sea]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: windows-x64
+            runner: windows-latest
+            ext: .exe
+          - target: linux-x64
+            runner: ubuntu-latest
+            ext: ""
+          - target: darwin-x64
+            runner: macos-13
+            ext: ""
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: binary-${{ matrix.target }}
+          path: .
+      - name: Smoke Tests (YouTube Real Download)
+        shell: bash
+        run: |
+          set -o pipefail
+          chmod +x ./nazzel-*${{ matrix.ext }} || true
+          ./nazzel-*${{ matrix.ext }} "https://www.youtube.com/watch?v=jNQXAC9IVRw" --no-tui

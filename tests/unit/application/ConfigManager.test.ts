@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { vi, describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { resolve } from 'path';
 import { ConfigManager } from '../../../src/application/ConfigManager.js';
 import type { IFileSystem } from '../../../src/application/interfaces/IFileSystem.js';

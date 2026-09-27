@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { describe, it, expect, vi, beforeEach, Mocked } from 'vitest';
 import { HistoryManager } from '../../../src/application/HistoryManager.js';
 import type { IFileSystem } from '../../../src/application/interfaces/IFileSystem.js';
