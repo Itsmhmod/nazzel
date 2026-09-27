@@ -23,6 +23,9 @@
   "exports": {
     ".": "./dist/cli/index.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc --project tsconfig.build.json && tsc-alias -p tsconfig.build.json",
     "bundle": "esbuild src/cli/index.ts --bundle --platform=node --target=node22 --outfile=dist/bundle.mjs --format=esm --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",

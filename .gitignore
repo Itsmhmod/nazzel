@@ -5,7 +5,27 @@ coverage/
 .DS_Store
 Thumbs.db
 *.tsbuildinfo
-sea.blob
+
+# Binaries / SEA
+sea-prep.blob
 nazzel-linux-x64
 nazzel-macos-arm64
 nazzel-win-x64.exe
+nazzel-sea*
+nazzel.exe
+yt-dlp
+yt-dlp.exe
+ffmpeg
+ffmpeg.exe
+ffprobe
+ffprobe.exe
+deno
+deno.exe
+
+# Local specific
+commads.md
+*.zip
+.agents/
+.gemini/
+scratch/
+measure.py

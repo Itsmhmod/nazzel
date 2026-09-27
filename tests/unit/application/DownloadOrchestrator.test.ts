@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, Mocked } from 'vitest';
 import { DownloadOrchestrator } from '../../../src/application/DownloadOrchestrator.js';
 import { AppEventBus } from '../../../src/application/AppEventBus.js';
 import { QueueManager } from '../../../src/application/QueueManager.js';
@@ -13,13 +13,13 @@ import type { IDownloadRequest, IDownloadResult, IMediaInfo } from '../../../src
 
 describe('DownloadOrchestrator', () => {
   let eventBus: AppEventBus;
-  let mockMediaEngine: vi.Mocked<IMediaEngine>;
+  let mockMediaEngine: Mocked<IMediaEngine>;
   let queueManager: QueueManager;
   let recoveryManager: RecoveryManager;
-  let mockHistoryManager: vi.Mocked<HistoryManager>;
-  let mockConfigManager: vi.Mocked<ConfigManager>;
-  let mockDependencyManager: vi.Mocked<IDependencyManager>;
-  let mockFileSystem: vi.Mocked<IFileSystem>;
+  let mockHistoryManager: Mocked<HistoryManager>;
+  let mockConfigManager: Mocked<ConfigManager>;
+  let mockDependencyManager: Mocked<IDependencyManager>;
+  let mockFileSystem: Mocked<IFileSystem>;
   let orchestrator: DownloadOrchestrator;
 
   const sampleRequest: IDownloadRequest = { url: 'https://test.com/vid' };
@@ -150,7 +150,7 @@ describe('DownloadOrchestrator', () => {
     async function* mockGeneratorFailsFirst() {
       attempts++;
       if (attempts === 1) {
-        throw new AppError('NETWORK_FAILURE', 'Conn lost', true);
+        throw new AppError('NETWORK_FAILURE', 'Conn lost');
       }
       return sampleResult;
     }
@@ -169,7 +169,7 @@ describe('DownloadOrchestrator', () => {
 
   it('gives up on non-recoverable error and logs history', async () => {
     async function* mockGeneratorFails() {
-      throw new AppError('FORMAT_UNAVAILABLE', 'Bad format', false);
+      throw new AppError('FORMAT_UNAVAILABLE', 'Bad format');
     }
     mockMediaEngine.download.mockReturnValue(mockGeneratorFails() as any);
 
@@ -234,7 +234,7 @@ describe('DownloadOrchestrator', () => {
     
     async function* mockGeneratorFails() {
       yield { downloadId: 'dl-fail', percent: 50, speed: '1M', eta: 10, downloaded: 500, total: 1024, phase: 'downloading', activeFile: '/tmp/active.mp4' };
-      throw new AppError('FORMAT_UNAVAILABLE', 'permanent failure', false);
+      throw new AppError('FORMAT_UNAVAILABLE', 'permanent failure');
     }
     mockMediaEngine.download.mockReturnValue(mockGeneratorFails() as any);
 

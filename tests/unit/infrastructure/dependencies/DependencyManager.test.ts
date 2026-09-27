@@ -6,6 +6,7 @@ import { Downloader } from '../../../../src/infrastructure/dependencies/Download
 import type { IProcessRunner } from '../../../../src/application/interfaces/IProcessRunner.js';
 import type { IFileSystem } from '../../../../src/application/interfaces/IFileSystem.js';
 import type { INazzelConfig } from '../../../../src/domain/types.js';
+import { Mocked } from 'vitest';
 import * as path from 'path';
 
 vi.mock('../../../../src/infrastructure/dependencies/GithubReleaseProvider.js');
@@ -13,8 +14,8 @@ vi.mock('../../../../src/infrastructure/dependencies/Downloader.js');
 vi.mock('../../../../src/infrastructure/dependencies/SafeZipExtractor.js');
 
 describe('DependencyManager', () => {
-  let runner: vi.Mocked<IProcessRunner>;
-  let fileSystem: vi.Mocked<IFileSystem>;
+  let runner: Mocked<IProcessRunner>;
+  let fileSystem: Mocked<IFileSystem>;
   let config: INazzelConfig;
   let manager: DependencyManager;
 
@@ -91,7 +92,7 @@ describe('DependencyManager', () => {
     });
 
     it('respects config overrides and reports source as config', async () => {
-      config.ytdlpPath = '/custom/yt-dlp';
+      (config as any).ytdlpPath = '/custom/yt-dlp';
       runner.run.mockImplementation(async (args) => {
         if (args.bin === '/custom/yt-dlp') {return { exitCode: 0, stdout: '2023.11.16', stderr: '' };}
         return { exitCode: 1, stdout: '', stderr: '' };
@@ -115,7 +116,7 @@ describe('DependencyManager', () => {
 
   describe('update', () => {
     it('refuses to update user-managed dependency', async () => {
-      config.ytdlpPath = '/custom/yt-dlp';
+      (config as any).ytdlpPath = '/custom/yt-dlp';
       runner.run.mockImplementation(async (args) => {
         if (args.bin === '/custom/yt-dlp') {return { exitCode: 0, stdout: '2023.11.16', stderr: '' };}
         return { exitCode: 1, stdout: '', stderr: '' };
@@ -300,7 +301,7 @@ describe('DependencyManager', () => {
       (manager as any).isWindows = true;
       // First stat call (ffmpeg) returns null, second (ffprobe) not reached
       fileSystem.stat
-        .mockResolvedValueOnce(null) // ffmpeg.exe missing
+        .mockRejectedValueOnce(new Error('ENOENT')) // ffmpeg.exe missing
         .mockResolvedValueOnce({ isFile: true } as any); // ffprobe.exe (never reached)
 
       await expect(manager.install('ffmpeg')).rejects.toThrow(
@@ -315,7 +316,7 @@ describe('DependencyManager', () => {
       // First stat (ffmpeg) succeeds, second (ffprobe) returns null
       fileSystem.stat
         .mockResolvedValueOnce({ isFile: true } as any) // ffmpeg.exe present
-        .mockResolvedValueOnce(null); // ffprobe.exe missing
+        .mockRejectedValueOnce(new Error('ENOENT')); // ffprobe.exe missing
 
       await expect(manager.install('ffmpeg')).rejects.toThrow(
         'Archive is missing required executable: ffprobe.exe'
@@ -353,7 +354,7 @@ describe('DependencyManager', () => {
       // Simulate missing ffprobe — should clean up staging and NOT touch managed dir root files
       fileSystem.stat
         .mockResolvedValueOnce({ isFile: true } as any)  // ffmpeg.exe staged
-        .mockResolvedValueOnce(null);                    // ffprobe.exe missing in archive
+        .mockRejectedValueOnce(new Error('ENOENT'));     // ffprobe.exe missing in archive
 
       await expect(manager.install('ffmpeg')).rejects.toThrow(
         'Archive is missing required executable: ffprobe.exe'

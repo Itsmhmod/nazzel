@@ -1,36 +1,40 @@
 # Nazzel
 
-> Local-first terminal media downloader — beautiful TUI, powered by yt-dlp.
+Nazzel is a local-first CLI and interactive TUI media downloader powered by `yt-dlp` and `ffmpeg`.
 
-**Status**: Phase 0 — Project Foundation
+## Project Status
 
-## Requirements
+Nazzel is currently under active development. The core application logic, managed dependency system, and interactive TUI are implemented and verified on Windows x64.
 
-- Node.js ≥ 20 LTS
-- yt-dlp (auto-managed)
-- FFmpeg (auto-managed or manually installed)
+**Note**: Standalone release packaging (Single Executable Applications) is currently under development. Linux and macOS native distributions are planned but not yet officially published.
 
-## Quick Start
+## Technology Stack
 
-```bash
-npm install
-npm run build
-node dist/cli/index.js
-```
+- **Runtime**: Node.js >= 22 (Current development targets Node 26 for experimental SEA)
+- **Language**: TypeScript
+- **UI Framework**: React + Ink (Terminal UI)
+- **Core Dependencies**: `yt-dlp`, `ffmpeg`, `ffprobe` (managed automatically by Nazzel)
 
-## Development
+## Developer Setup
 
-```bash
-npm run typecheck   # type check
-npm run lint        # lint
-npm run test        # all tests
-npm run test:unit   # unit tests only
-npm run test:watch  # watch mode
-```
+1. Clone the repository
+2. Run `npm ci`
+3. Run `npm run build`
+4. Run `npm run dev` to start the CLI/TUI from source.
+
+## Testing
+
+- Unit tests: `npm run test:unit`
+- TUI tests: `npm run test:tui`
+- Integration tests: `npm run test:int`
+- Full test suite: `npm run test`
+
+## Official Repository
+The canonical source for Nazzel is hosted at [GitHub](https://github.com/Itsmhmod/nazzel).
 
 ## Architecture
 
-See [docs/architecture.md](docs/architecture.md) and the master plan.
+See `docs/` and the master plan for detailed architecture.
 
 ```
 src/
@@ -42,11 +46,6 @@ src/
   config/        # Schema, defaults, path resolution
   shared/        # Logger, retry, sanitize, event bus
 ```
-
-## Agents & Skills
-
-This project is configured for use with Antigravity IDE.
-See [.agents/](.agents/) for agents, skills, and coding rules.
 
 ## License
 

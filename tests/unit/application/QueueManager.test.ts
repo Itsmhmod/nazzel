@@ -9,15 +9,15 @@ describe('QueueManager', () => {
     manager = new QueueManager(2); // Concurrency: 2
   });
 
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
   it('executes tasks in FIFO order honoring concurrency limits', async () => {
     const executed: string[] = [];
     
     // Create slow tasks
-    const task1 = vi.fn().mockImplementation(async () => { await delay(50); executed.push('1'); });
-    const task2 = vi.fn().mockImplementation(async () => { await delay(20); executed.push('2'); });
-    const task3 = vi.fn().mockImplementation(async () => { await delay(10); executed.push('3'); });
+    const task1 = vi.fn().mockImplementation(async () => { await delay(200); executed.push('1'); });
+    const task2 = vi.fn().mockImplementation(async () => { await delay(100); executed.push('2'); });
+    const task3 = vi.fn().mockImplementation(async () => { await delay(50); executed.push('3'); });
 
     manager.enqueue('1', task1);
     manager.enqueue('2', task2);
@@ -31,8 +31,8 @@ describe('QueueManager', () => {
       { id: '3', status: 'queued' }
     ]);
 
-    await delay(25); 
-    // At 25ms, task 2 finishes, releasing slot for 3. 3 starts, not done yet.
+    await delay(120); 
+    // At 120ms, task 2 finishes, releasing slot for 3. 3 starts, not done yet.
     snapshot = manager.getSnapshot();
     expect(snapshot).toEqual([
       { id: '1', status: 'active' },
@@ -40,7 +40,7 @@ describe('QueueManager', () => {
     ]);
     expect(executed).toEqual(['2']);
 
-    await delay(40);
+    await delay(150);
     // All done
     expect(executed).toEqual(['2', '3', '1']); // 3 finishes before 1
     expect(manager.getSnapshot()).toEqual([]);
@@ -54,7 +54,7 @@ describe('QueueManager', () => {
     manager.enqueue('1', task1);
     manager.enqueue('2', task2);
 
-    expect(manager.getSnapshot()[1].status).toBe('queued');
+    expect(manager.getSnapshot()[1]?.status).toBe('queued');
     
     manager.cancel('2');
     

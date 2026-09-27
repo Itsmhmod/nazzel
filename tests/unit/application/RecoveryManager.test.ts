@@ -10,7 +10,7 @@ describe('RecoveryManager', () => {
   });
 
   it('evaluates non-recoverable error as NONE', () => {
-    const error = new AppError('FORMAT_UNAVAILABLE', 'Format not found', false);
+    const error = new AppError('FORMAT_UNAVAILABLE', 'Format not found');
     const plan = manager.evaluateError('dl-1', error, 3, 1000);
     
     expect(plan.action).toBe('NONE');
@@ -18,7 +18,7 @@ describe('RecoveryManager', () => {
   });
 
   it('evaluates NETWORK_FAILURE as WAIT_THEN_RETRY with full budget', () => {
-    const error = new AppError('NETWORK_FAILURE', 'Connection lost', true);
+    const error = new AppError('NETWORK_FAILURE', 'Connection lost');
     const plan = manager.evaluateError('dl-2', error, 3, 1000);
     
     expect(plan.action).toBe('WAIT_THEN_RETRY');
@@ -27,7 +27,7 @@ describe('RecoveryManager', () => {
   });
 
   it('exhausts budget after reaching max retries', () => {
-    const error = new AppError('NETWORK_FAILURE', 'Connection lost', true);
+    const error = new AppError('NETWORK_FAILURE', 'Connection lost');
     
     manager.recordAttempt('dl-3', 1000);
     manager.recordAttempt('dl-3', 1000);
@@ -39,7 +39,7 @@ describe('RecoveryManager', () => {
   });
 
   it('applies exponential backoff on subsequent attempts', () => {
-    const error = new AppError('NETWORK_FAILURE', 'Connection lost', true);
+    const error = new AppError('NETWORK_FAILURE', 'Connection lost');
     
     let plan = manager.evaluateError('dl-4', error, 3, 1000);
     expect(plan.delayMs).toBe(1000);
@@ -54,7 +54,7 @@ describe('RecoveryManager', () => {
   });
 
   it('caps backoff at 30 seconds', () => {
-    const error = new AppError('NETWORK_FAILURE', 'Connection lost', true);
+    const error = new AppError('NETWORK_FAILURE', 'Connection lost');
     manager.recordAttempt('dl-5', 20000); // Attempt 1, next backoff 40000
     
     const plan = manager.evaluateError('dl-5', error, 3, 20000);
@@ -62,7 +62,7 @@ describe('RecoveryManager', () => {
   });
 
   it('evaluates EXTRACTOR_FAILURE as UPDATE_DEP_THEN_RETRY with capped attempts', () => {
-    const error = new AppError('EXTRACTOR_FAILURE', 'Extractor failed', true);
+    const error = new AppError('EXTRACTOR_FAILURE', 'Extractor failed');
     
     const plan = manager.evaluateError('dl-6', error, 5, 1000);
     
@@ -76,7 +76,7 @@ describe('RecoveryManager', () => {
   });
 
   it('resets budget successfully', () => {
-    const error = new AppError('NETWORK_FAILURE', 'Connection lost', true);
+    const error = new AppError('NETWORK_FAILURE', 'Connection lost');
     
     manager.recordAttempt('dl-7', 1000);
     manager.recordAttempt('dl-7', 1000);

@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, Mocked } from 'vitest';
 import { HistoryManager } from '../../../src/application/HistoryManager.js';
 import type { IFileSystem } from '../../../src/application/interfaces/IFileSystem.js';
 
 describe('HistoryManager', () => {
-  let mockFileSystem: vi.Mocked<IFileSystem>;
+  let mockFileSystem: Mocked<IFileSystem>;
   let manager: HistoryManager;
 
   const validRecordBase = {
@@ -24,7 +24,7 @@ describe('HistoryManager', () => {
       exists: vi.fn().mockResolvedValue(true),
       stat: vi.fn(),
       move: vi.fn(),
-      delete: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined) as any,
       readJson: vi.fn(),
       readFile: vi.fn().mockResolvedValue(''),
       writeJson: vi.fn(),
@@ -37,10 +37,10 @@ describe('HistoryManager', () => {
     await manager.append(validRecordBase);
 
     expect(mockFileSystem.appendLine).toHaveBeenCalledTimes(1);
-    const args = mockFileSystem.appendLine.mock.calls[0];
+    const args = mockFileSystem.appendLine.mock.calls[0]!;
     expect(args[0]).toBe('/test/history.ndjson');
     
-    const writtenJson = JSON.parse(args[1]);
+    const writtenJson = JSON.parse(args[1] as string);
     expect(writtenJson.schemaVersion).toBe(1);
     expect(writtenJson.id).toBe('test-123');
   });
@@ -54,8 +54,8 @@ describe('HistoryManager', () => {
     const records = await manager.readAll();
     
     expect(records).toHaveLength(2);
-    expect(records[0].id).toBe('1');
-    expect(records[1].id).toBe('2');
+    expect(records[0]?.id).toBe('1');
+    expect(records[1]?.id).toBe('2');
   });
 
   it('tolerates malformed and partial records', async () => {
@@ -73,8 +73,8 @@ describe('HistoryManager', () => {
     
     // Only the two valid ones should survive
     expect(records).toHaveLength(2);
-    expect(records[0].id).toBe('1');
-    expect(records[1].id).toBe('5');
+    expect(records[0]?.id).toBe('1');
+    expect(records[1]?.id).toBe('5');
   });
 
   it('returns empty array if file does not exist', async () => {
