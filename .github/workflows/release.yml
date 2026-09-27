@@ -166,8 +166,12 @@ jobs:
         if: matrix.smoke_test_youtube == true
         shell: bash
         run: |
-          ./$OUTPUT_NAME "https://www.youtube.com/watch?v=jNQXAC9IVRw" --no-tui
-
+          set -o pipefail
+          ./$OUTPUT_NAME "https://www.youtube.com/watch?v=jNQXAC9IVRw" --no-tui 2>&1 | tee smoke_log.txt || EXIT_CODE=$?
+          echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
+          cat smoke_log.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$EXIT_CODE" ] && [ "$EXIT_CODE" != "0" ]; then exit $EXIT_CODE; fi
       - name: Generate Checksum
         shell: bash
         run: |
