@@ -164,15 +164,31 @@ jobs:
           ./$OUTPUT_NAME history
           
           # Doctor offline test
-          # Exit code 3 is expected because dependencies (ffmpeg/yt-dlp) are not installed offline
+          # We expect exit code 3 because yt-dlp/ffmpeg are missing on a fresh runner.
+          # We parse the JSON report to guarantee exactly that condition.
           set +e
-          ./$OUTPUT_NAME doctor
+          DOCTOR_OUT=$(./$OUTPUT_NAME doctor --json)
           DOC_EXIT=$?
           set -e
+          
           if [ $DOC_EXIT -ne 3 ]; then
             echo "Expected doctor to exit with 3 (missing deps), but got $DOC_EXIT"
             exit 1
           fi
+          
+          # Use node to parse the JSON string correctly since jq might not be robust on all runners
+          node -e "
+            const report = JSON.parse(process.env.DOCTOR_OUT).report;
+            if (report.dependencies.allOk) {
+              console.error('Dependencies should be reported as missing on fresh CI.');
+              process.exit(1);
+            }
+            if (report.config.status !== 'ok' || report.history.status !== 'ok') {
+              console.error('Config/History diagnostic failed unexpectedly.');
+              process.exit(1);
+            }
+            console.log('Doctor diagnostic correctly identified missing dependencies without internal errors.');
+          "
 
       - name: Generate Checksum
         shell: bash

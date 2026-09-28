@@ -5,7 +5,8 @@ import { HistoryScreen } from '../../src/tui/screens/HistoryScreen.js';
 
 describe('HistoryScreen Component', () => {
   it('renders loading state', () => {
-    const { lastFrame } = render(<HistoryScreen onClose={vi.fn()} />);
+    const mockManager = { readAll: vi.fn().mockResolvedValue([]) } as unknown as import('../../src/application/HistoryManager.js').HistoryManager;
+    const { lastFrame } = render(<HistoryScreen onClose={vi.fn()} historyManager={mockManager} />);
     expect(lastFrame()).toContain('Loading history...');
   });
 

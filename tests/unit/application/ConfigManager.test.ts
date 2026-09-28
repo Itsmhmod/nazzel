@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, Mocked } from 'vitest';
 import { resolve } from 'path';
 import { ConfigManager } from '../../../src/application/ConfigManager.js';
 import type { IFileSystem } from '../../../src/application/interfaces/IFileSystem.js';
@@ -7,7 +7,7 @@ import { AppError } from '../../../src/domain/errors.js';
 import type { INazzelConfig } from '../../../src/domain/types.js';
 
 describe('ConfigManager', () => {
-  let mockFileSystem: vi.Mocked<IFileSystem>;
+  let mockFileSystem: Mocked<IFileSystem>;
   let manager: ConfigManager;
 
   beforeEach(() => {
@@ -20,6 +20,8 @@ describe('ConfigManager', () => {
       readJson: vi.fn().mockResolvedValue({}),
       writeJson: vi.fn().mockResolvedValue(undefined),
       appendLine: vi.fn(),
+      readFile: vi.fn().mockResolvedValue('{}'),
+      realpath: vi.fn().mockResolvedValue('/test/config.json')
     };
     manager = new ConfigManager(mockFileSystem, '/test/config.json', '/test');
   });

@@ -1,4 +1,4 @@
-import { vi, describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, Mocked } from 'vitest';
 import { DiagnosticsRunner } from '../../../src/application/DiagnosticsRunner.js';
 import type { IDependencyManager } from '../../../src/application/interfaces/IDependencyManager.js';
 import type { IFileSystem } from '../../../src/application/interfaces/IFileSystem.js';
@@ -17,9 +17,9 @@ vi.mock('https', () => ({
 }));
 
 describe('DiagnosticsRunner', () => {
-  let mockDepManager: vi.Mocked<IDependencyManager>;
-  let mockFileSystem: vi.Mocked<IFileSystem>;
-  let mockConfigManager: vi.Mocked<ConfigManager>;
+  let mockDepManager: Mocked<IDependencyManager>;
+  let mockFileSystem: Mocked<IFileSystem>;
+  let mockConfigManager: Mocked<ConfigManager>;
   let runner: DiagnosticsRunner;
 
   const validDeps: IDependencyReport = {
@@ -44,10 +44,11 @@ describe('DiagnosticsRunner', () => {
       stat: vi.fn(),
       move: vi.fn(),
       delete: vi.fn().mockResolvedValue(undefined),
-      readJson: vi.fn(),
+      readJson: vi.fn() as any,
       readFile: vi.fn(),
       writeJson: vi.fn().mockResolvedValue(undefined),
-      appendLine: vi.fn()
+      appendLine: vi.fn(),
+      realpath: vi.fn().mockResolvedValue('/test/path')
     };
 
     mockConfigManager = {

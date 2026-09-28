@@ -22,11 +22,12 @@ function triggerInput(input: string, key: any = {}) {
 describe('RepairScreen Component', () => {
   const mockReport = {
     allOk: false,
-    missingCritical: ['ffmpeg'],
+    missingCritical: ['ffmpeg' as const],
     outdated: [],
     deps: [
-      { name: 'ffmpeg', status: 'missing' as const }
-    ]
+      { name: 'ffmpeg' as const, status: 'missing' as const, version: '1.0', path: '', source: 'managed' as const, minVersion: '1.0' }
+    ],
+    checkedAt: new Date().toISOString()
   };
 
   it('renders missing dependencies and handles cancel', () => {

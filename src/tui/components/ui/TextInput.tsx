@@ -5,7 +5,7 @@ import { theme } from '../../theme.js';
 export interface TextInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSubmit?: (value: string) => void;
+  onSubmit?: ((value: string) => void) | undefined;
   placeholder?: string;
   width?: number;
 }

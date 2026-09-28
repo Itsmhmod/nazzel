@@ -22,7 +22,7 @@ function triggerInput(input: string, key: any = {}) {
 
 describe('ErrorScreen Component', () => {
   it('renders error details and handles quit', () => {
-    const error = new AppError('UNKNOWN_CODE', 'Something bad happened');
+    const error = new AppError('CONFIG_INVALID', 'Something bad happened');
     const quitMock = vi.fn();
     
     const { lastFrame } = render(
@@ -31,7 +31,7 @@ describe('ErrorScreen Component', () => {
     
     const frame = lastFrame() || '';
     expect(frame).toContain('Something bad happened');
-    expect(frame).toContain('UNKNOWN_CODE');
+    expect(frame).toContain('CONFIG_INVALID');
     
     triggerInput('', { return: true }); // Enter
     expect(quitMock).toHaveBeenCalled();

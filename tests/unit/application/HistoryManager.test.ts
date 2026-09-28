@@ -29,6 +29,7 @@ describe('HistoryManager', () => {
       readFile: vi.fn().mockResolvedValue(''),
       writeJson: vi.fn(),
       appendLine: vi.fn().mockResolvedValue(undefined),
+      realpath: vi.fn().mockResolvedValue('/test/history.ndjson')
     };
     manager = new HistoryManager(mockFileSystem, '/test/history.ndjson');
   });
