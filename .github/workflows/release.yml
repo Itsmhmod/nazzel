@@ -177,6 +177,7 @@ jobs:
             exit 1
           fi
           
+          export DOCTOR_OUT
           # Use node to parse the JSON string correctly since jq might not be robust on all runners
           node -e "
             const report = JSON.parse(process.env.DOCTOR_OUT).report;
