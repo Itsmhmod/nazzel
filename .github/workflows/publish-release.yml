@@ -24,12 +24,17 @@ jobs:
           TAG_NAME="${{ github.event.workflow_run.head_branch }}"
           echo "TAG=$TAG_NAME" >> $GITHUB_ENV
           
-          # Only proceed for actual production tags (v*.*.* without -test suffixes)
-          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Skipping production release for non-production tag: $TAG_NAME"
-            echo "skip=true" >> $GITHUB_OUTPUT
-          else
+          # Set prerelease flag for tags with -test suffixes
+          if [[ "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-test[0-9]+)?$ ]]; then
             echo "skip=false" >> $GITHUB_OUTPUT
+            if [[ "$TAG_NAME" == *"-test"* ]]; then
+              echo "prerelease=true" >> $GITHUB_OUTPUT
+            else
+              echo "prerelease=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Skipping release for invalid tag: $TAG_NAME"
+            echo "skip=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Download all artifacts from build workflow
@@ -107,5 +112,6 @@ jobs:
             release-artifacts/SHA256SUMS
             release-artifacts/release-manifest.json
           fail_on_unmatched_files: true
+          prerelease: ${{ steps.get-tag.outputs.prerelease == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
