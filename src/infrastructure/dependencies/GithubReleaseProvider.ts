@@ -15,12 +15,14 @@ export interface GithubRelease {
 export class GithubReleaseProvider {
   static async getReleaseByTag(repo: string, tag: string): Promise<GithubRelease> {
     const url = `https://api.github.com/repos/${repo}/releases/tags/${tag}`;
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'NazzelDownloader/0.1.0',
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
+    const headers: Record<string, string> = {
+      'User-Agent': 'NazzelDownloader/0.1.0',
+      Accept: 'application/vnd.github.v3+json',
+    };
+    if (process.env.GITHUB_TOKEN) {
+      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    }
+    const response = await fetch(url, { headers });
 
     if (!response.ok) {
       throw new AppError(
@@ -39,12 +41,14 @@ export class GithubReleaseProvider {
 
   static async getLatestRelease(repo: string): Promise<GithubRelease> {
     const url = `https://api.github.com/repos/${repo}/releases/latest`;
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'NazzelDownloader/0.1.0',
-        Accept: 'application/vnd.github.v3+json',
-      },
-    });
+    const headers: Record<string, string> = {
+      'User-Agent': 'NazzelDownloader/0.1.0',
+      Accept: 'application/vnd.github.v3+json',
+    };
+    if (process.env.GITHUB_TOKEN) {
+      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    }
+    const response = await fetch(url, { headers });
 
     if (!response.ok) {
       throw new AppError('NETWORK_FAILURE', `GitHub API Error ${response.status} for ${repo}`);
@@ -59,11 +63,13 @@ export class GithubReleaseProvider {
   }
 
   static async downloadChecksums(url: string): Promise<Record<string, string>> {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'NazzelDownloader/0.1.0',
-      },
-    });
+    const headers: Record<string, string> = {
+      'User-Agent': 'NazzelDownloader/0.1.0',
+    };
+    if (process.env.GITHUB_TOKEN) {
+      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    }
+    const response = await fetch(url, { headers });
 
     if (!response.ok) {
       throw new AppError('NETWORK_FAILURE', `HTTP Error ${response.status} getting checksums`);
