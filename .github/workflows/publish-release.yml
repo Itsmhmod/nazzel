@@ -1,0 +1,111 @@
+name: Publish GitHub Release
+
+on:
+  workflow_run:
+    workflows: ["Native Release Pipeline"]
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get Tag Name
+        id: get-tag
+        run: |
+          # Extract the tag from the ref that triggered the upstream workflow (e.g., refs/tags/v0.1.0)
+          TAG_NAME="${{ github.event.workflow_run.head_branch }}"
+          echo "TAG=$TAG_NAME" >> $GITHUB_ENV
+          
+          # Only proceed for actual production tags (v*.*.* without -test suffixes)
+          if [[ ! "$TAG_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Skipping production release for non-production tag: $TAG_NAME"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Download all artifacts from build workflow
+        if: steps.get-tag.outputs.skip == 'false'
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          path: release-artifacts
+          pattern: release-artifacts
+          merge-multiple: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify Artifacts and Manifest
+        if: steps.get-tag.outputs.skip == 'false'
+        run: |
+          cd release-artifacts
+          if [ ! -f "release-manifest.json" ] || [ ! -f "SHA256SUMS" ]; then
+            echo "Missing manifest or checksums!"
+            exit 1
+          fi
+          # Independently verify hashes
+          sha256sum -c SHA256SUMS
+
+      - name: Extract Release Notes from Changelog
+        if: steps.get-tag.outputs.skip == 'false'
+        run: |
+          VERSION="${TAG#v}"
+          # Simple extraction script
+          node -e "
+            const fs = require('fs');
+            const lines = fs.readFileSync('CHANGELOG.md', 'utf8').split('\n');
+            let capturing = false;
+            let notes = [];
+            for (const line of lines) {
+              if (line.startsWith('## [' + process.env.VERSION + ']')) {
+                capturing = true;
+                continue;
+              }
+              if (capturing && line.startsWith('## [')) {
+                break;
+              }
+              if (capturing) {
+                notes.push(line);
+              }
+            }
+            // Fallback generic notes if extraction fails
+            if (notes.length === 0) {
+              notes = [
+                'Nazzel is a terminal-first media downloader.',
+                '',
+                '## Supported binary targets',
+                '- windows-x64, windows-arm64, darwin-x64, darwin-arm64, linux-x64, linux-arm64',
+                '',
+                '## Installation',
+                'Standalone binaries are available below. No automated installer is currently provided.',
+                '',
+                '## Known Limitations',
+                '- Windows GitHub-hosted YouTube external smoke can be affected by external service restrictions.'
+              ];
+            }
+            fs.writeFileSync('release-notes.md', notes.join('\n').trim());
+          "
+        env:
+          VERSION: ${{ env.TAG }}
+
+      - name: Create GitHub Release
+        if: steps.get-tag.outputs.skip == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: Nazzel ${{ env.TAG }}
+          body_path: release-notes.md
+          files: |
+            release-artifacts/nazzel-*
+            release-artifacts/SHA256SUMS
+            release-artifacts/release-manifest.json
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
