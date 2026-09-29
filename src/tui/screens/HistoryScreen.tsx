@@ -22,10 +22,13 @@ export function HistoryScreen({ historyManager, onClose }: HistoryScreenProps) {
   const [offset, setOffset] = useState(0);
 
   useEffect(() => {
-    historyManager.readAll()
+    historyManager
+      .readAll()
       .then((data) => {
         // Sort newest first
-        const sorted = data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        const sorted = data.sort(
+          (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+        );
         setRecords(sorted);
         setLoading(false);
       })
@@ -55,7 +58,7 @@ export function HistoryScreen({ historyManager, onClose }: HistoryScreenProps) {
   const visibleRecords = records.slice(offset, offset + pageSize);
 
   return (
-    <Layout 
+    <Layout
       title="HISTORY"
       subtitle="Past Downloads"
       footer={
@@ -69,9 +72,13 @@ export function HistoryScreen({ historyManager, onClose }: HistoryScreenProps) {
     >
       <Box flexDirection="column" paddingX={2} marginY={1}>
         <Box marginBottom={1} justifyContent="space-between">
-          <Text color={theme.primary} bold>Download History</Text>
+          <Text color={theme.primary} bold>
+            Download History
+          </Text>
           <Text color={theme.muted}>
-            {records.length > 0 ? `${offset + 1}-${Math.min(offset + pageSize, records.length)} of ${records.length}` : ''}
+            {records.length > 0
+              ? `${offset + 1}-${Math.min(offset + pageSize, records.length)} of ${records.length}`
+              : ''}
           </Text>
         </Box>
 
@@ -102,8 +109,13 @@ export function HistoryScreen({ historyManager, onClose }: HistoryScreenProps) {
             </Box>
             {visibleRecords.map((r, i) => {
               const dateStr = new Date(r.timestamp).toLocaleDateString();
-              const statusColor = r.status === 'completed' ? theme.success : r.status === 'failed' ? theme.error : theme.warning;
-              
+              const statusColor =
+                r.status === 'completed'
+                  ? theme.success
+                  : r.status === 'failed'
+                    ? theme.error
+                    : theme.warning;
+
               // Truncate title
               const titleWidth = Math.max(10, columns - 32);
               let titleStr = r.title || r.url || 'Unknown';

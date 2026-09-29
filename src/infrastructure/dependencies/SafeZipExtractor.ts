@@ -34,9 +34,12 @@ export class SafeZipExtractor {
 
     try {
       const entries = await zipReader.getEntries();
-      
+
       if (entries.length > maxEntries) {
-        throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive contains too many entries: ${entries.length} > ${maxEntries}`);
+        throw new AppError(
+          'DEPENDENCY_INSTALL_FAILED',
+          `Archive contains too many entries: ${entries.length} > ${maxEntries}`,
+        );
       }
 
       let totalSize = 0;
@@ -49,45 +52,72 @@ export class SafeZipExtractor {
 
         // Zip Bomb protection
         if (uncompressedSize > maxEntrySize) {
-          throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive entry exceeds maximum allowed size: ${filename} (${uncompressedSize} bytes)`);
+          throw new AppError(
+            'DEPENDENCY_INSTALL_FAILED',
+            `Archive entry exceeds maximum allowed size: ${filename} (${uncompressedSize} bytes)`,
+          );
         }
         totalSize += uncompressedSize;
         if (totalSize > maxTotalSize) {
-          throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive total uncompressed size exceeds limit (${maxTotalSize} bytes)`);
+          throw new AppError(
+            'DEPENDENCY_INSTALL_FAILED',
+            `Archive total uncompressed size exceeds limit (${maxTotalSize} bytes)`,
+          );
         }
 
         // Security: Path validation
         if (!filename || filename.trim() === '') {
-          throw new AppError('DEPENDENCY_INSTALL_FAILED', 'Archive contains entry with empty filename');
+          throw new AppError(
+            'DEPENDENCY_INSTALL_FAILED',
+            'Archive contains entry with empty filename',
+          );
         }
-        
+
         if (filename.includes('\0')) {
-          throw new AppError('DEPENDENCY_INSTALL_FAILED', 'Archive rejected due to NUL byte in filename');
+          throw new AppError(
+            'DEPENDENCY_INSTALL_FAILED',
+            'Archive rejected due to NUL byte in filename',
+          );
         }
 
         // Drive letter protection (e.g. C:, D:)
         if (/^[a-zA-Z]:/.test(filename)) {
-          throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive rejected due to drive letter in path: ${filename}`);
+          throw new AppError(
+            'DEPENDENCY_INSTALL_FAILED',
+            `Archive rejected due to drive letter in path: ${filename}`,
+          );
         }
 
         if (path.isAbsolute(filename) || filename.startsWith('/') || filename.startsWith('\\')) {
-          throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive rejected due to absolute path: ${filename}`);
+          throw new AppError(
+            'DEPENDENCY_INSTALL_FAILED',
+            `Archive rejected due to absolute path: ${filename}`,
+          );
         }
 
         const parts = filename.split(/[/\\]/);
         if (parts.includes('..')) {
-          throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive rejected due to unsafe path traversal: ${filename}`);
+          throw new AppError(
+            'DEPENDENCY_INSTALL_FAILED',
+            `Archive rejected due to unsafe path traversal: ${filename}`,
+          );
         }
 
         const normalized = path.normalize(filename);
         if (normalized.startsWith('..' + path.sep)) {
-          throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive entry normalizes outside staging root: ${filename}`);
+          throw new AppError(
+            'DEPENDENCY_INSTALL_FAILED',
+            `Archive entry normalizes outside staging root: ${filename}`,
+          );
         }
 
         // Prevent exact duplicate normalized paths from overwriting each other maliciously
         if (!entry.directory) {
           if (normalizedPaths.has(normalized)) {
-            throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive rejected due to duplicate normalized path: ${normalized}`);
+            throw new AppError(
+              'DEPENDENCY_INSTALL_FAILED',
+              `Archive rejected due to duplicate normalized path: ${normalized}`,
+            );
           }
           normalizedPaths.add(normalized);
         }
@@ -98,21 +128,32 @@ export class SafeZipExtractor {
         if (externalAttrs !== null && externalAttrs !== undefined) {
           const unixMode = externalAttrs >>> 16;
           if ((unixMode & 0o170000) === 0o120000) {
-            throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive rejected due to symlink entry: ${filename}`);
+            throw new AppError(
+              'DEPENDENCY_INSTALL_FAILED',
+              `Archive rejected due to symlink entry: ${filename}`,
+            );
           }
         }
       }
 
       // 2. Extraction Pass
       for (const entry of entries) {
-        if (entry.directory) { continue; }
+        if (entry.directory) {
+          continue;
+        }
 
         const targetPath = path.resolve(options.targetDir, entry.filename);
         const resolvedTargetDir = path.resolve(options.targetDir);
-        
+
         // Final sanity check
-        if (!targetPath.startsWith(resolvedTargetDir + path.sep) && targetPath !== resolvedTargetDir) {
-           throw new AppError('DEPENDENCY_INSTALL_FAILED', `Extraction path escaped target directory: ${targetPath}`);
+        if (
+          !targetPath.startsWith(resolvedTargetDir + path.sep) &&
+          targetPath !== resolvedTargetDir
+        ) {
+          throw new AppError(
+            'DEPENDENCY_INSTALL_FAILED',
+            `Extraction path escaped target directory: ${targetPath}`,
+          );
         }
 
         const targetDir = path.dirname(targetPath);

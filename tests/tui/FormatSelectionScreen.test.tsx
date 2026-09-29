@@ -23,17 +23,44 @@ describe('FormatSelectionScreen Component', () => {
   const mockMediaInfo: any = {
     title: 'Test Video',
     formats: [
-      { formatId: 'f1', ext: 'mp4', resolution: '1080p', filesize: 10000000, isVideoOnly: false, isAudioOnly: false, vcodec: 'h264' },
-      { formatId: 'f2', ext: 'webm', resolution: '720p', filesize: 5000000, isVideoOnly: true, isAudioOnly: false, vcodec: 'vp9' },
-      { formatId: 'f3', ext: 'm4a', filesize: 1000000, isVideoOnly: false, isAudioOnly: true, acodec: 'aac' },
-    ]
+      {
+        formatId: 'f1',
+        ext: 'mp4',
+        resolution: '1080p',
+        filesize: 10000000,
+        isVideoOnly: false,
+        isAudioOnly: false,
+        vcodec: 'h264',
+      },
+      {
+        formatId: 'f2',
+        ext: 'webm',
+        resolution: '720p',
+        filesize: 5000000,
+        isVideoOnly: true,
+        isAudioOnly: false,
+        vcodec: 'vp9',
+      },
+      {
+        formatId: 'f3',
+        ext: 'm4a',
+        filesize: 1000000,
+        isVideoOnly: false,
+        isAudioOnly: true,
+        acodec: 'aac',
+      },
+    ],
   };
 
   it('renders title and options', () => {
     const { lastFrame } = render(
-      <FormatSelectionScreen mediaInfo={mockMediaInfo as any} onSelect={vi.fn()} onCancel={vi.fn()} />
+      <FormatSelectionScreen
+        mediaInfo={mockMediaInfo as any}
+        onSelect={vi.fn()}
+        onCancel={vi.fn()}
+      />,
     );
-    
+
     const frame = lastFrame() || '';
     expect(frame).toContain('FORMAT SELECTION');
     expect(frame).toContain('Test Video');
@@ -48,7 +75,11 @@ describe('FormatSelectionScreen Component', () => {
   it('handles cancellation via Escape', () => {
     const cancelMock = vi.fn();
     render(
-      <FormatSelectionScreen mediaInfo={mockMediaInfo as any} onSelect={vi.fn()} onCancel={cancelMock} />
+      <FormatSelectionScreen
+        mediaInfo={mockMediaInfo as any}
+        onSelect={vi.fn()}
+        onCancel={cancelMock}
+      />,
     );
     triggerInput('', { escape: true }); // Escape
     expect(cancelMock).toHaveBeenCalled();
@@ -57,7 +88,7 @@ describe('FormatSelectionScreen Component', () => {
   it('handles selection via Enter', () => {
     const selectMock = vi.fn();
     render(
-      <FormatSelectionScreen mediaInfo={mockMediaInfo} onSelect={selectMock} onCancel={vi.fn()} />
+      <FormatSelectionScreen mediaInfo={mockMediaInfo} onSelect={selectMock} onCancel={vi.fn()} />,
     );
     triggerInput('', { return: true }); // Selects first option (Best Quality)
     expect(selectMock).toHaveBeenCalledWith('best');
@@ -66,7 +97,7 @@ describe('FormatSelectionScreen Component', () => {
   it('handles navigation via Down arrow', () => {
     const selectMock = vi.fn();
     render(
-      <FormatSelectionScreen mediaInfo={mockMediaInfo} onSelect={selectMock} onCancel={vi.fn()} />
+      <FormatSelectionScreen mediaInfo={mockMediaInfo} onSelect={selectMock} onCancel={vi.fn()} />,
     );
     triggerInput('', { downArrow: true }); // Down arrow
     triggerInput('', { return: true });

@@ -9,15 +9,24 @@ describe('QueueManager', () => {
     manager = new QueueManager(2); // Concurrency: 2
   });
 
-  const delay = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
+  const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
   it('executes tasks in FIFO order honoring concurrency limits', async () => {
     const executed: string[] = [];
-    
+
     // Create slow tasks
-    const task1 = vi.fn().mockImplementation(async () => { await delay(200); executed.push('1'); });
-    const task2 = vi.fn().mockImplementation(async () => { await delay(100); executed.push('2'); });
-    const task3 = vi.fn().mockImplementation(async () => { await delay(50); executed.push('3'); });
+    const task1 = vi.fn().mockImplementation(async () => {
+      await delay(200);
+      executed.push('1');
+    });
+    const task2 = vi.fn().mockImplementation(async () => {
+      await delay(100);
+      executed.push('2');
+    });
+    const task3 = vi.fn().mockImplementation(async () => {
+      await delay(50);
+      executed.push('3');
+    });
 
     manager.enqueue('1', task1);
     manager.enqueue('2', task2);
@@ -28,15 +37,15 @@ describe('QueueManager', () => {
     expect(snapshot).toEqual([
       { id: '1', status: 'active' },
       { id: '2', status: 'active' },
-      { id: '3', status: 'queued' }
+      { id: '3', status: 'queued' },
     ]);
 
-    await delay(120); 
+    await delay(120);
     // At 120ms, task 2 finishes, releasing slot for 3. 3 starts, not done yet.
     snapshot = manager.getSnapshot();
     expect(snapshot).toEqual([
       { id: '1', status: 'active' },
-      { id: '3', status: 'active' }
+      { id: '3', status: 'active' },
     ]);
     expect(executed).toEqual(['2']);
 
@@ -48,19 +57,21 @@ describe('QueueManager', () => {
 
   it('removes queued item when cancelled', () => {
     manager = new QueueManager(1); // Concurrency: 1
-    const task1 = vi.fn().mockImplementation(async () => { await delay(50); });
-    const task2 = vi.fn().mockImplementation(async () => { await delay(50); });
-    
+    const task1 = vi.fn().mockImplementation(async () => {
+      await delay(50);
+    });
+    const task2 = vi.fn().mockImplementation(async () => {
+      await delay(50);
+    });
+
     manager.enqueue('1', task1);
     manager.enqueue('2', task2);
 
     expect(manager.getSnapshot()[1]?.status).toBe('queued');
-    
+
     manager.cancel('2');
-    
-    expect(manager.getSnapshot()).toEqual([
-      { id: '1', status: 'active' }
-    ]);
+
+    expect(manager.getSnapshot()).toEqual([{ id: '1', status: 'active' }]);
   });
 
   it('aborts active item when cancelled, releasing slot', async () => {
@@ -88,7 +99,7 @@ describe('QueueManager', () => {
 
     expect(manager.getSnapshot()).toEqual([
       { id: '1', status: 'active' },
-      { id: '2', status: 'queued' }
+      { id: '2', status: 'queued' },
     ]);
 
     manager.cancel('1');
@@ -102,7 +113,7 @@ describe('QueueManager', () => {
 
   it('releases slot when task fails', async () => {
     manager = new QueueManager(1);
-    
+
     const task1 = vi.fn().mockRejectedValue(new Error('Crash'));
     const task2 = vi.fn().mockResolvedValue(undefined);
 
@@ -118,7 +129,7 @@ describe('QueueManager', () => {
 
   it('prevents duplicate IDs', () => {
     manager.enqueue('1', vi.fn().mockResolvedValue(undefined));
-    
+
     expect(() => {
       manager.enqueue('1', vi.fn().mockResolvedValue(undefined));
     }).toThrow(AppError);

@@ -33,14 +33,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             TUI Critical Failure
           </Text>
           <Box marginY={1}>
-            <Text color={theme.text}>
-              An unexpected render error occurred in the terminal UI.
-            </Text>
+            <Text color={theme.text}>An unexpected render error occurred in the terminal UI.</Text>
           </Box>
           <Box>
-            <Text color={theme.muted}>
-              {this.state.error?.message || 'Unknown error'}
-            </Text>
+            <Text color={theme.muted}>{this.state.error?.message || 'Unknown error'}</Text>
           </Box>
           <Box marginTop={1}>
             <Text color={theme.text}>

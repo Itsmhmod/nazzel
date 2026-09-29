@@ -23,7 +23,7 @@ export function ErrorScreen({ error, onShowDiagnostics, onQuit }: ErrorScreenPro
   });
 
   return (
-    <Layout 
+    <Layout
       title="ERROR"
       subtitle="Download Failed"
       footer={
@@ -49,11 +49,19 @@ export function ErrorScreen({ error, onShowDiagnostics, onQuit }: ErrorScreenPro
                     </Text>
                   </Box>
                 </Box>
-                
+
                 {!!error.cause && (
-                  <Box flexDirection="column" marginTop={1} padding={1} borderStyle="single" borderColor={theme.muted}>
+                  <Box
+                    flexDirection="column"
+                    marginTop={1}
+                    padding={1}
+                    borderStyle="single"
+                    borderColor={theme.muted}
+                  >
                     <Text color={theme.muted}>Cause Details:</Text>
-                    <Text color={theme.text}>{String((error.cause as any).message || error.cause)}</Text>
+                    <Text color={theme.text}>
+                      {String((error.cause as any).message || error.cause)}
+                    </Text>
                   </Box>
                 )}
               </Box>

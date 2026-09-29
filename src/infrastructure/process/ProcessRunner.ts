@@ -8,10 +8,18 @@ export class ProcessRunner implements IProcessRunner {
   async run(args: IProcessArgs): Promise<IProcessResult> {
     try {
       const execaOptions: any = { reject: false, shell: false };
-      if (args.cwd !== undefined) {execaOptions.cwd = args.cwd;}
-      if (args.env !== undefined) {execaOptions.env = args.env;}
-      if (args.signal !== undefined) {execaOptions.cancelSignal = args.signal;}
-      if (args.timeoutMs !== undefined) {execaOptions.timeout = args.timeoutMs;}
+      if (args.cwd !== undefined) {
+        execaOptions.cwd = args.cwd;
+      }
+      if (args.env !== undefined) {
+        execaOptions.env = args.env;
+      }
+      if (args.signal !== undefined) {
+        execaOptions.cancelSignal = args.signal;
+      }
+      if (args.timeoutMs !== undefined) {
+        execaOptions.timeout = args.timeoutMs;
+      }
 
       const result = await execa(args.bin, args.args, execaOptions);
 
@@ -25,7 +33,10 @@ export class ProcessRunner implements IProcessRunner {
         throw AppError.from('CANCELLED', new Error('Process cancelled'), { bin: args.bin });
       }
       if (error.timedOut) {
-        throw AppError.from('PROCESS_CRASH', new Error('Process timed out'), { bin: args.bin, timeoutMs: args.timeoutMs });
+        throw AppError.from('PROCESS_CRASH', new Error('Process timed out'), {
+          bin: args.bin,
+          timeoutMs: args.timeoutMs,
+        });
       }
       throw AppError.from('PROCESS_CRASH', error, { bin: args.bin });
     }
@@ -33,15 +44,25 @@ export class ProcessRunner implements IProcessRunner {
 
   async *spawn(args: IProcessArgs): AsyncGenerator<string, void, unknown> {
     const execaOptions: any = { reject: false, shell: false };
-    if (args.cwd !== undefined) {execaOptions.cwd = args.cwd;}
-    if (args.env !== undefined) {execaOptions.env = args.env;}
-    if (args.signal !== undefined) {execaOptions.cancelSignal = args.signal;}
-    if (args.timeoutMs !== undefined) {execaOptions.timeout = args.timeoutMs;}
+    if (args.cwd !== undefined) {
+      execaOptions.cwd = args.cwd;
+    }
+    if (args.env !== undefined) {
+      execaOptions.env = args.env;
+    }
+    if (args.signal !== undefined) {
+      execaOptions.cancelSignal = args.signal;
+    }
+    if (args.timeoutMs !== undefined) {
+      execaOptions.timeout = args.timeoutMs;
+    }
 
     const child = execa(args.bin, args.args, execaOptions);
 
     if (!child.stdout || !child.stderr) {
-      throw AppError.from('PROCESS_CRASH', new Error('Failed to get process streams'), { bin: args.bin });
+      throw AppError.from('PROCESS_CRASH', new Error('Failed to get process streams'), {
+        bin: args.bin,
+      });
     }
 
     const rl = createInterface({
@@ -70,13 +91,16 @@ export class ProcessRunner implements IProcessRunner {
     }
 
     if (result.timedOut) {
-      throw AppError.from('PROCESS_CRASH', new Error('Process timed out'), { bin: args.bin, timeoutMs: args.timeoutMs });
+      throw AppError.from('PROCESS_CRASH', new Error('Process timed out'), {
+        bin: args.bin,
+        timeoutMs: args.timeoutMs,
+      });
     }
 
     if (result.exitCode !== 0) {
       const errorMsg = stderrBuffer.trim() || 'Process exited with non-zero code';
-      throw AppError.from('PROCESS_CRASH', new Error(errorMsg), { 
-        bin: args.bin, 
+      throw AppError.from('PROCESS_CRASH', new Error(errorMsg), {
+        bin: args.bin,
         exitCode: result.exitCode,
       });
     }

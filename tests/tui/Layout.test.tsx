@@ -9,9 +9,9 @@ describe('Layout Component', () => {
     const { lastFrame } = render(
       <Layout title="MY_TITLE" subtitle="MY_SUBTITLE">
         <Text>Content</Text>
-      </Layout>
+      </Layout>,
     );
-    
+
     const frame = lastFrame() || '';
     expect(frame).toContain('MY_TITLE');
     expect(frame).toContain('MY_SUBTITLE');
@@ -22,9 +22,9 @@ describe('Layout Component', () => {
     const { lastFrame } = render(
       <Layout title="Title" footer={<Text>My Footer</Text>}>
         <Text>Content</Text>
-      </Layout>
+      </Layout>,
     );
-    
+
     const frame = lastFrame() || '';
     expect(frame).toContain('My Footer');
   });

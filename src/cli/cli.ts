@@ -7,6 +7,9 @@ import { configCommand } from './commands/config.js';
 import { queueCommand } from './commands/queue.js';
 import { updateCommand } from './commands/update.js';
 import { versionCommand } from './commands/version.js';
+import { repairCommand } from './commands/repair.js';
+import { uninstallCommand } from './commands/uninstall.js';
+import { NAZZEL_VERSION } from '../shared/version.js';
 
 export function createCli(): Command {
   const program = new Command();
@@ -14,7 +17,7 @@ export function createCli(): Command {
   program
     .name('nazzel')
     .description('Local-first terminal media downloader')
-    .version('0.1.0', '-v, --version')
+    .version(NAZZEL_VERSION, '-v, --version')
     .exitOverride() // So we can catch parse errors and exit manually
     .configureOutput({
       writeErr: (str) => process.stderr.write(str),
@@ -46,6 +49,8 @@ export function createCli(): Command {
   program.addCommand(queueCommand());
   program.addCommand(updateCommand());
   program.addCommand(versionCommand());
+  program.addCommand(repairCommand());
+  program.addCommand(uninstallCommand());
 
   return program;
 }

@@ -13,9 +13,14 @@ export interface HomeScreenProps {
   onQuit: () => void;
 }
 
-export function HomeScreen({ onSubmit, onShowDiagnostics, onShowHistory, onQuit }: HomeScreenProps) {
+export function HomeScreen({
+  onSubmit,
+  onShowDiagnostics,
+  onShowHistory,
+  onQuit,
+}: HomeScreenProps) {
   const [url, setUrl] = useState('');
-  
+
   useEffect(() => {
     try {
       const text = clipboardy.readSync();
@@ -26,20 +31,23 @@ export function HomeScreen({ onSubmit, onShowDiagnostics, onShowHistory, onQuit 
       // Ignore clipboard read errors in headless environments
     }
   }, []);
-  
-  useInput((input, key) => {
-    if (key.escape || (input === 'q' && url.length === 0)) {
-      onQuit();
-    } else if (input === 'd' && url.length === 0) {
-      onShowDiagnostics();
-    } else if (input === 'h' && url.length === 0) {
-      onShowHistory();
-    }
-  }, { isActive: url.length === 0 });
+
+  useInput(
+    (input, key) => {
+      if (key.escape || (input === 'q' && url.length === 0)) {
+        onQuit();
+      } else if (input === 'd' && url.length === 0) {
+        onShowDiagnostics();
+      } else if (input === 'h' && url.length === 0) {
+        onShowHistory();
+      }
+    },
+    { isActive: url.length === 0 },
+  );
 
   return (
-    <Layout 
-      title="NAZZEL" 
+    <Layout
+      title="NAZZEL"
       subtitle="Terminal Media Downloader"
       footer={
         <KeyHint
@@ -53,16 +61,20 @@ export function HomeScreen({ onSubmit, onShowDiagnostics, onShowHistory, onQuit 
       }
     >
       <Box flexDirection="column" marginY={2} paddingX={2}>
-        <Text color={theme.primary} bold>Enter media URL:</Text>
+        <Text color={theme.primary} bold>
+          Enter media URL:
+        </Text>
         <Box marginTop={1}>
-          <TextInput 
-            value={url} 
-            onChange={setUrl} 
+          <TextInput
+            value={url}
+            onChange={setUrl}
             onSubmit={(val) => {
-              if (val.trim().length > 0) { onSubmit(val.trim()); }
-            }} 
-            placeholder="https://..." 
-            width={60} 
+              if (val.trim().length > 0) {
+                onSubmit(val.trim());
+              }
+            }}
+            placeholder="https://..."
+            width={60}
           />
         </Box>
       </Box>

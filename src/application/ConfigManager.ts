@@ -11,7 +11,11 @@ export class ConfigManager {
   private readonly configDir: string;
   private cachedConfig: INazzelConfig | null = null;
 
-  constructor(fileSystem: IFileSystem, configPath: string = CONFIG_FILE_PATH, configDir: string = CONFIG_DIR) {
+  constructor(
+    fileSystem: IFileSystem,
+    configPath: string = CONFIG_FILE_PATH,
+    configDir: string = CONFIG_DIR,
+  ) {
     this.fileSystem = fileSystem;
     this.configPath = configPath;
     this.configDir = configDir;
@@ -27,12 +31,15 @@ export class ConfigManager {
 
     let raw: unknown = {};
     const exists = await this.fileSystem.exists(this.configPath);
-    
+
     if (exists) {
       try {
         raw = await this.fileSystem.readJson(this.configPath);
       } catch (error: any) {
-        throw new AppError('CONFIG_INVALID', 'Failed to read config file', { cause: error, context: { path: this.configPath } });
+        throw new AppError('CONFIG_INVALID', 'Failed to read config file', {
+          cause: error,
+          context: { path: this.configPath },
+        });
       }
     }
 
@@ -65,13 +72,15 @@ export class ConfigManager {
       validated = parseConfigWithDefaults(newConfig, DEFAULT_CONFIG);
       validated = this.normalizePaths(validated);
     } catch (error: any) {
-      throw new AppError('CONFIG_INVALID', 'Configuration validation failed on save', { cause: error });
+      throw new AppError('CONFIG_INVALID', 'Configuration validation failed on save', {
+        cause: error,
+      });
     }
 
     await this.fileSystem.ensureDir(this.configDir);
 
     const tempPath = `${this.configPath}.tmp.${Date.now()}`;
-    
+
     try {
       // Atomic write pattern: write to temp file, then rename/move
       await this.fileSystem.writeJson(tempPath, validated);
@@ -84,7 +93,10 @@ export class ConfigManager {
       } catch {
         // Ignore cleanup failure
       }
-      throw new AppError('FS_WRITE_FAILED', 'Failed to save config file atomically', { cause: error, context: { path: this.configPath } });
+      throw new AppError('FS_WRITE_FAILED', 'Failed to save config file atomically', {
+        cause: error,
+        context: { path: this.configPath },
+      });
     }
   }
 

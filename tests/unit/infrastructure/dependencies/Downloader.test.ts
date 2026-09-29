@@ -16,17 +16,19 @@ describe('Downloader', () => {
     mockWriteStream.write = vi.fn();
     mockWriteStream.end = vi.fn(() => mockWriteStream.emit('finish'));
     mockWriteStream.close = vi.fn();
-    
+
     vi.mocked(fs.createWriteStream).mockReturnValue(mockWriteStream);
-    
+
     const mockResponse = new EventEmitter() as any;
     mockResponse.statusCode = 200;
     mockResponse.headers = { 'content-length': '100' };
     mockResponse.pipe = vi.fn((dest) => dest);
-    
+
     // Simulate https.get
     vi.mocked(https.get).mockImplementation((url, cb) => {
-      if (cb) {(cb as any)(mockResponse);}
+      if (cb) {
+        (cb as any)(mockResponse);
+      }
       const req = new EventEmitter() as any;
       req.end = vi.fn();
       return req;

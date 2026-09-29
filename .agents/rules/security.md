@@ -78,3 +78,14 @@ When downloading FFmpeg or yt-dlp binaries:
 
 - The structured logger must never receive auth tokens or passwords as context values.
 - URLs logged in debug mode are acceptable (they may contain query params from video services).
+
+## Agent Automation & CI Execution
+
+To protect against credential exposure during automation, all agent tasks and CI workflows must adhere to the following rules:
+- **Never** print credentials to standard output or logs.
+- **Never** hardcode GitHub tokens or secrets in any file or script.
+- **Never** store tokens in scripts, temporary scratch files, or workspace storage.
+- **Never** pass secrets as arguments on command lines (where they might be logged in shell history or process listings).
+- **Always** use Git Credential Manager or browser authentication for interactive tools.
+- **Always** use the built-in `GITHUB_TOKEN` for GitHub Actions workflows.
+- **Always** apply the principle of least privilege for any authentication token.

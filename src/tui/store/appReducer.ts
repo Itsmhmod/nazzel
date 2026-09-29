@@ -1,5 +1,10 @@
 import type { AppEvent } from '@nazzel/domain/events.js';
-import type { IDownloadProgress, IMediaInfo, IDownloadResult, IDependencyReport } from '@nazzel/domain/types.js';
+import type {
+  IDownloadProgress,
+  IMediaInfo,
+  IDownloadResult,
+  IDependencyReport,
+} from '@nazzel/domain/types.js';
 import type { AppError } from '@nazzel/domain/errors.js';
 
 export type AppScreen =

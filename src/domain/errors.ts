@@ -47,7 +47,10 @@ export type AppErrorCode =
   | 'CANCELLED'
   // Configuration errors
   | 'CONFIG_INVALID'
-  | 'CONFIG_WRITE_FAILED';
+  | 'CONFIG_WRITE_FAILED'
+  // Lifecycle errors
+  | 'UPDATE_FAILED'
+  | 'UNINSTALL_FAILED';
 
 // ---------------------------------------------------------------------------
 // Recoverability Classification
@@ -80,6 +83,8 @@ export const ERROR_RECOVERABILITY: Readonly<Record<AppErrorCode, boolean>> = {
   CANCELLED: false,
   CONFIG_INVALID: false,
   CONFIG_WRITE_FAILED: false,
+  UPDATE_FAILED: false,
+  UNINSTALL_FAILED: false,
 };
 
 // ---------------------------------------------------------------------------

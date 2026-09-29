@@ -37,7 +37,7 @@ export function CompletedScreen({ title, result, onRestart, onQuit }: CompletedS
   });
 
   return (
-    <Layout 
+    <Layout
       title="COMPLETED"
       subtitle="Download Finished"
       footer={
@@ -51,13 +51,26 @@ export function CompletedScreen({ title, result, onRestart, onQuit }: CompletedS
     >
       <Box paddingX={2} marginY={1}>
         <Alert type="success" title="Success">
-          <Text color={theme.text} bold>{title}</Text>
+          <Text color={theme.text} bold>
+            {title}
+          </Text>
           {result && (
             <Box flexDirection="column" marginTop={1}>
-              <Text color={theme.muted}>Path: <Text color={theme.text}>{result.filePath}</Text></Text>
-              <Text color={theme.muted}>Size: <Text color={theme.text}>{formatBytes(result.fileSize)}</Text></Text>
-              <Text color={theme.muted}>Duration: <Text color={theme.text}>{formatDuration(result.duration)}</Text></Text>
-              <Text color={theme.muted}>Verified: <Text color={result.verified ? theme.success : theme.error}>{result.verified ? 'Yes' : 'No'}</Text></Text>
+              <Text color={theme.muted}>
+                Path: <Text color={theme.text}>{result.filePath}</Text>
+              </Text>
+              <Text color={theme.muted}>
+                Size: <Text color={theme.text}>{formatBytes(result.fileSize)}</Text>
+              </Text>
+              <Text color={theme.muted}>
+                Duration: <Text color={theme.text}>{formatDuration(result.duration)}</Text>
+              </Text>
+              <Text color={theme.muted}>
+                Verified:{' '}
+                <Text color={result.verified ? theme.success : theme.error}>
+                  {result.verified ? 'Yes' : 'No'}
+                </Text>
+              </Text>
             </Box>
           )}
         </Alert>

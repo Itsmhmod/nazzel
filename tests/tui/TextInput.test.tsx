@@ -59,7 +59,7 @@ describe('TextInput Component', () => {
     // Right arrow
     triggerInput('', { rightArrow: true });
     triggerInput('d');
-    
+
     expect(lastFrame()?.replace(/\x1B\[[0-9;]*m/g, '')).toContain('abcd');
   });
 

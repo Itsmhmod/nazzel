@@ -10,7 +10,10 @@ export class YtDlpOutputParser {
     try {
       raw = JSON.parse(rawJson);
     } catch (err) {
-      throw AppError.from('EXTRACTOR_FAILURE', err, { url: fallbackUrl, reason: 'Failed to parse JSON output' });
+      throw AppError.from('EXTRACTOR_FAILURE', err, {
+        url: fallbackUrl,
+        reason: 'Failed to parse JSON output',
+      });
     }
 
     return {
@@ -25,19 +28,24 @@ export class YtDlpOutputParser {
       uploadDate: raw.upload_date || null,
       uploader: raw.uploader || null,
       viewCount: raw.view_count || null,
-      formats: Array.isArray(raw.formats) ? raw.formats.map((f: any) => ({
-        formatId: f.format_id,
-        ext: f.ext,
-        resolution: f.format_note === 'audio only' ? null : (f.resolution || `${f.width}x${f.height}` || null),
-        fps: f.fps || null,
-        vcodec: f.vcodec === 'none' ? null : f.vcodec,
-        acodec: f.acodec === 'none' ? null : f.acodec,
-        filesize: f.filesize || f.filesize_approx || null,
-        tbr: f.tbr || null,
-        note: f.format_note || null,
-        isVideoOnly: f.acodec === 'none' && f.vcodec !== 'none',
-        isAudioOnly: f.vcodec === 'none' && f.acodec !== 'none',
-      })) : [],
+      formats: Array.isArray(raw.formats)
+        ? raw.formats.map((f: any) => ({
+            formatId: f.format_id,
+            ext: f.ext,
+            resolution:
+              f.format_note === 'audio only'
+                ? null
+                : f.resolution || `${f.width}x${f.height}` || null,
+            fps: f.fps || null,
+            vcodec: f.vcodec === 'none' ? null : f.vcodec,
+            acodec: f.acodec === 'none' ? null : f.acodec,
+            filesize: f.filesize || f.filesize_approx || null,
+            tbr: f.tbr || null,
+            note: f.format_note || null,
+            isVideoOnly: f.acodec === 'none' && f.vcodec !== 'none',
+            isAudioOnly: f.vcodec === 'none' && f.acodec !== 'none',
+          }))
+        : [],
     };
   }
 
@@ -52,10 +60,13 @@ export class YtDlpOutputParser {
 
     try {
       const raw = JSON.parse(line);
-      const fragment = raw.frag_count && raw.frag_count !== 'NA' ? {
-        current: Number(raw.frag_index),
-        total: Number(raw.frag_count)
-      } : undefined;
+      const fragment =
+        raw.frag_count && raw.frag_count !== 'NA'
+          ? {
+              current: Number(raw.frag_index),
+              total: Number(raw.frag_count),
+            }
+          : undefined;
 
       const progress: IDownloadProgress = {
         downloadId: url,

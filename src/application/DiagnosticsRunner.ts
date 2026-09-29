@@ -43,14 +43,18 @@ export class DiagnosticsRunner {
     private readonly configManager: ConfigManager,
     private readonly configPath: string,
     private readonly historyPath: string,
-    private readonly mediaEngine?: IMediaEngine
+    private readonly mediaEngine?: IMediaEngine,
   ) {}
 
   async run(targetUrl?: string): Promise<IDiagnosticsReport> {
     const dependencies = await this.depManager.detectAll();
-    
+
     // Check config
-    const configResult: IDiagnosticsReport['config'] = { status: 'ok', path: this.configPath, details: '' };
+    const configResult: IDiagnosticsReport['config'] = {
+      status: 'ok',
+      path: this.configPath,
+      details: '',
+    };
     try {
       await this.configManager.load();
     } catch (e: any) {
@@ -68,7 +72,11 @@ export class DiagnosticsRunner {
     }
 
     // Check output dir
-    const outputDirResult: IDiagnosticsReport['outputDir'] = { status: 'ok', path: outputDirPath, details: '' };
+    const outputDirResult: IDiagnosticsReport['outputDir'] = {
+      status: 'ok',
+      path: outputDirPath,
+      details: '',
+    };
     if (outputDirPath !== 'Unknown') {
       try {
         await this.fileSystem.ensureDir(outputDirPath);
@@ -85,7 +93,11 @@ export class DiagnosticsRunner {
     }
 
     // Check history
-    const historyResult: IDiagnosticsReport['history'] = { status: 'ok', path: this.historyPath, details: '' };
+    const historyResult: IDiagnosticsReport['history'] = {
+      status: 'ok',
+      path: this.historyPath,
+      details: '',
+    };
     try {
       await this.fileSystem.ensureDir(path.dirname(this.historyPath));
     } catch (e: any) {
@@ -95,7 +107,7 @@ export class DiagnosticsRunner {
 
     // Check network
     const networkResult: IDiagnosticsReport['network'] = { status: 'ok', details: 'Reachable' };
-    
+
     const internetCheck = await this.checkUrlReachability('http://1.1.1.1');
     if (!internetCheck) {
       const fallbackCheck = await this.checkUrlReachability('https://dns.google');
@@ -105,7 +117,10 @@ export class DiagnosticsRunner {
       }
     }
 
-    let extractorResult: IDiagnosticsReport['extractor'] = { status: 'not_tested', details: 'No URL provided' };
+    let extractorResult: IDiagnosticsReport['extractor'] = {
+      status: 'not_tested',
+      details: 'No URL provided',
+    };
 
     if (networkResult.status === 'ok' && targetUrl) {
       const platformCheck = await this.checkUrlReachability(targetUrl);
@@ -124,10 +139,10 @@ export class DiagnosticsRunner {
       }
     }
 
-    const isHealthy = 
-      dependencies.allOk && 
-      networkResult.status === 'ok' && 
-      outputDirResult.status === 'ok' && 
+    const isHealthy =
+      dependencies.allOk &&
+      networkResult.status === 'ok' &&
+      outputDirResult.status === 'ok' &&
       configResult.status === 'ok' &&
       historyResult.status === 'ok' &&
       (extractorResult.status === 'ok' || extractorResult.status === 'not_tested');
@@ -148,17 +163,17 @@ export class DiagnosticsRunner {
       try {
         const parsed = new URL(urlStr);
         const reqFn = parsed.protocol === 'https:' ? httpsRequest : request;
-        
+
         const req = reqFn(parsed, { method: 'HEAD', timeout: 3000 }, (_res) => {
           resolve(true); // Any response means we can reach the host
         });
-        
+
         req.on('error', () => resolve(false));
         req.on('timeout', () => {
           req.destroy();
           resolve(false);
         });
-        
+
         req.end();
       } catch {
         resolve(false); // Invalid URL

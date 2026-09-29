@@ -25,23 +25,30 @@ describe('RepairScreen Component', () => {
     missingCritical: ['ffmpeg' as const],
     outdated: [],
     deps: [
-      { name: 'ffmpeg' as const, status: 'missing' as const, version: '1.0', path: '', source: 'managed' as const, minVersion: '1.0' }
+      {
+        name: 'ffmpeg' as const,
+        status: 'missing' as const,
+        version: '1.0',
+        path: '',
+        source: 'managed' as const,
+        minVersion: '1.0',
+      },
     ],
-    checkedAt: new Date().toISOString()
+    checkedAt: new Date().toISOString(),
   };
 
   it('renders missing dependencies and handles cancel', () => {
     const quitMock = vi.fn();
-    
+
     const { lastFrame } = render(
-      <RepairScreen report={mockReport} progress={null} onConfirm={vi.fn()} onQuit={quitMock} />
+      <RepairScreen report={mockReport} progress={null} onConfirm={vi.fn()} onQuit={quitMock} />,
     );
-    
+
     const frame = lastFrame() || '';
     expect(frame).toContain('Dependencies Missing');
     expect(frame).toContain('ffmpeg');
     expect(frame).toContain('missing');
-    
+
     triggerInput('q');
     expect(quitMock).toHaveBeenCalled();
   });

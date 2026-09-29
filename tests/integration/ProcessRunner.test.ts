@@ -15,7 +15,10 @@ describe('ProcessRunner Integration', () => {
   });
 
   it('spawns a process and yields stdout', async () => {
-    const gen = runner.spawn({ bin: 'node', args: ['-e', 'console.log("line1"); console.log("line2");'] });
+    const gen = runner.spawn({
+      bin: 'node',
+      args: ['-e', 'console.log("line1"); console.log("line2");'],
+    });
     const lines: string[] = [];
     for await (const line of gen) {
       lines.push(line);

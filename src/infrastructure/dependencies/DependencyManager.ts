@@ -1,12 +1,10 @@
 import { AppError } from '@nazzel/domain/errors.js';
-import type { 
-  IDependencyManager 
-} from '@nazzel/application/interfaces/IDependencyManager.js';
-import type { 
-  IDependencyReport, 
-  IDependencyStatus, 
+import type { IDependencyManager } from '@nazzel/application/interfaces/IDependencyManager.js';
+import type {
+  IDependencyReport,
+  IDependencyStatus,
   DependencyName,
-  INazzelConfig
+  INazzelConfig,
 } from '@nazzel/domain/types.js';
 import type { IProcessRunner } from '@nazzel/application/interfaces/IProcessRunner.js';
 import type { IFileSystem } from '@nazzel/application/interfaces/IFileSystem.js';
@@ -22,22 +20,32 @@ const MIN_YTDLP_DATE = '20231000'; // YYYYMMDD
 const MIN_FFMPEG_VER = '5.0.0';
 
 function compareVersions(v1: string, v2: string): number {
-  const p1 = v1.replace(/^[vV]/, '').split('.').map(n => parseInt(n, 10));
-  const p2 = v2.replace(/^[vV]/, '').split('.').map(n => parseInt(n, 10));
+  const p1 = v1
+    .replace(/^[vV]/, '')
+    .split('.')
+    .map((n) => parseInt(n, 10));
+  const p2 = v2
+    .replace(/^[vV]/, '')
+    .split('.')
+    .map((n) => parseInt(n, 10));
   for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
     const val1 = p1[i];
     const val2 = p2[i];
-    const n1 = (val1 === undefined || isNaN(val1)) ? 0 : val1;
-    const n2 = (val2 === undefined || isNaN(val2)) ? 0 : val2;
-    if (n1 > n2) { return 1; }
-    if (n1 < n2) { return -1; }
+    const n1 = val1 === undefined || isNaN(val1) ? 0 : val1;
+    const n2 = val2 === undefined || isNaN(val2) ? 0 : val2;
+    if (n1 > n2) {
+      return 1;
+    }
+    if (n1 < n2) {
+      return -1;
+    }
   }
   return 0;
 }
 
 /**
  * DependencyManager handles detection, resolution, and safe installation of external dependencies.
- * 
+ *
  * Integrity vs Authenticity:
  * - Integrity Verification: Ensures the downloaded file matches the expected SHA-256 hash provided
  *   by the release source (e.g., GitHub Releases). This prevents corrupted downloads.
@@ -54,7 +62,9 @@ export class DependencyManager implements IDependencyManager {
     private readonly config: INazzelConfig,
   ) {
     this.isWindows = os.platform() === 'win32';
-    this.managedBinDir = paths.data ? path.join(paths.data, 'bin') : path.join(os.homedir(), '.local', 'share', 'nazzel', 'bin');
+    this.managedBinDir = paths.data
+      ? path.join(paths.data, 'bin')
+      : path.join(os.homedir(), '.local', 'share', 'nazzel', 'bin');
   }
 
   async detectAll(): Promise<IDependencyReport> {
@@ -68,8 +78,8 @@ export class DependencyManager implements IDependencyManager {
       this.detectNode(),
     ]);
 
-    const missingCritical = deps.filter(d => d.status === 'missing').map(d => d.name);
-    const outdated = deps.filter(d => d.status === 'outdated').map(d => d.name);
+    const missingCritical = deps.filter((d) => d.status === 'missing').map((d) => d.name);
+    const outdated = deps.filter((d) => d.status === 'outdated').map((d) => d.name);
 
     return {
       allOk: missingCritical.length === 0 && outdated.length === 0,
@@ -82,14 +92,20 @@ export class DependencyManager implements IDependencyManager {
 
   async getBinaryPath(name: DependencyName): Promise<string> {
     const report = await this.detectAll();
-    const dep = report.deps.find(d => d.name === name);
+    const dep = report.deps.find((d) => d.name === name);
     if (!dep || dep.status !== 'ok' || !dep.path) {
-      throw AppError.from('DEPENDENCY_MISSING', new Error(`Dependency ${name} is missing or not ok`), { name });
+      throw AppError.from(
+        'DEPENDENCY_MISSING',
+        new Error(`Dependency ${name} is missing or not ok`),
+        { name },
+      );
     }
     return dep.path;
   }
 
-  async installMissing(onProgress?: (name: string, downloaded: number, total: number | undefined) => void): Promise<boolean> {
+  async installMissing(
+    onProgress?: (name: string, downloaded: number, total: number | undefined) => void,
+  ): Promise<boolean> {
     const report = await this.detectAll();
     let success = true;
     for (const dep of report.deps) {
@@ -104,7 +120,10 @@ export class DependencyManager implements IDependencyManager {
     return success;
   }
 
-  async install(name: DependencyName, onProgress?: (name: string, downloaded: number, total: number | undefined) => void): Promise<boolean> {
+  async install(
+    name: DependencyName,
+    onProgress?: (name: string, downloaded: number, total: number | undefined) => void,
+  ): Promise<boolean> {
     if (name === 'yt-dlp') {
       return this.installYtDlp(onProgress);
     } else if (name === 'ffmpeg' || name === 'ffprobe') {
@@ -117,32 +136,43 @@ export class DependencyManager implements IDependencyManager {
 
   async update(name: DependencyName): Promise<boolean> {
     const report = await this.detectAll();
-    const dep = report.deps.find(d => d.name === name);
+    const dep = report.deps.find((d) => d.name === name);
     if (dep && dep.source !== 'managed' && dep.source !== null) {
-      throw new AppError('CONFIG_INVALID', `Cannot update user-managed dependency: ${name} (source: ${dep.source})`);
+      throw new AppError(
+        'CONFIG_INVALID',
+        `Cannot update user-managed dependency: ${name} (source: ${dep.source})`,
+      );
     }
     return this.install(name);
   }
 
-  private async installYtDlp(onProgress?: (name: string, downloaded: number, total: number | undefined) => void): Promise<boolean> {
+  private async installYtDlp(
+    onProgress?: (name: string, downloaded: number, total: number | undefined) => void,
+  ): Promise<boolean> {
     await this.fileSystem.ensureDir(this.managedBinDir);
     const tempDir = path.join(this.managedBinDir, 'temp');
     await this.fileSystem.ensureDir(tempDir);
 
     let assetName = 'yt-dlp';
-    if (this.isWindows) {assetName = 'yt-dlp.exe';}
-    else if (os.platform() === 'darwin') {assetName = 'yt-dlp_macos';}
-    else {assetName = 'yt-dlp_linux';}
+    if (this.isWindows) {
+      assetName = 'yt-dlp.exe';
+    } else if (os.platform() === 'darwin') {
+      assetName = 'yt-dlp_macos';
+    } else {
+      assetName = 'yt-dlp_linux';
+    }
 
     const release = await GithubReleaseProvider.getLatestRelease('yt-dlp/yt-dlp');
-    const asset = release.assets.find(a => a.name === assetName);
-    const checksumsAsset = release.assets.find(a => a.name === 'SHA2-256SUMS');
+    const asset = release.assets.find((a) => a.name === assetName);
+    const checksumsAsset = release.assets.find((a) => a.name === 'SHA2-256SUMS');
 
     if (!asset || !checksumsAsset) {
       throw new AppError('NETWORK_FAILURE', 'Could not find yt-dlp release assets');
     }
 
-    const checksums = await GithubReleaseProvider.downloadChecksums(checksumsAsset.browser_download_url);
+    const checksums = await GithubReleaseProvider.downloadChecksums(
+      checksumsAsset.browser_download_url,
+    );
     const expectedSha = checksums[assetName];
     if (!expectedSha) {
       throw new AppError('DEPENDENCY_INSTALL_FAILED', 'No checksum found for yt-dlp binary');
@@ -153,7 +183,7 @@ export class DependencyManager implements IDependencyManager {
       url: asset.browser_download_url,
       destination: tempBin,
       expectedSha256: expectedSha,
-      onProgress: onProgress ? (d, t) => onProgress('yt-dlp', d, t) : undefined
+      onProgress: onProgress ? (d, t) => onProgress('yt-dlp', d, t) : undefined,
     });
 
     if (!this.isWindows) {
@@ -164,7 +194,10 @@ export class DependencyManager implements IDependencyManager {
     const versionOutput = await this.getVersion(tempBin, ['--version']);
     if (!versionOutput) {
       await this.fileSystem.delete(tempBin).catch(() => {});
-      throw new AppError('DEPENDENCY_INSTALL_FAILED', 'Downloaded yt-dlp binary failed execution test.');
+      throw new AppError(
+        'DEPENDENCY_INSTALL_FAILED',
+        'Downloaded yt-dlp binary failed execution test.',
+      );
     }
 
     const finalName = this.isWindows ? 'yt-dlp.exe' : 'yt-dlp';
@@ -175,18 +208,27 @@ export class DependencyManager implements IDependencyManager {
     return true;
   }
 
-  private async installFfmpeg(onProgress?: (name: string, downloaded: number, total: number | undefined) => void): Promise<boolean> {
+  private async installFfmpeg(
+    onProgress?: (name: string, downloaded: number, total: number | undefined) => void,
+  ): Promise<boolean> {
     await this.fileSystem.ensureDir(this.managedBinDir);
     const tempDir = path.join(this.managedBinDir, 'temp');
     await this.fileSystem.ensureDir(tempDir);
 
     let platform = '';
     let ext = '';
-    if (this.isWindows) { platform = 'win64'; ext = '.zip'; }
-    else if (os.platform() === 'darwin') { 
-      throw new AppError('DEPENDENCY_INSTALL_FAILED', 'macOS managed FFmpeg installation is not supported by BtbN. Please install ffmpeg via Homebrew.');
+    if (this.isWindows) {
+      platform = 'win64';
+      ext = '.zip';
+    } else if (os.platform() === 'darwin') {
+      throw new AppError(
+        'DEPENDENCY_INSTALL_FAILED',
+        'macOS managed FFmpeg installation is not supported by BtbN. Please install ffmpeg via Homebrew.',
+      );
+    } else {
+      platform = 'linux64';
+      ext = '.tar.xz';
     }
-    else { platform = 'linux64'; ext = '.tar.xz'; }
 
     // On Windows we use the gpl-shared variant which ships BOTH ffmpeg.exe and ffprobe.exe.
     // The gpl (static) variant only ships ffmpeg.exe as of current BtbN packaging.
@@ -196,17 +238,24 @@ export class DependencyManager implements IDependencyManager {
     const assetName = `${assetNamePrefix}${ext}`;
 
     const release = await GithubReleaseProvider.getLatestRelease('BtbN/FFmpeg-Builds');
-    const asset = release.assets.find(a => a.name === assetName);
-    if (!asset) {throw new AppError('NETWORK_FAILURE', `Could not find FFmpeg release for ${platform} (${variant})`);}
+    const asset = release.assets.find((a) => a.name === assetName);
+    if (!asset) {
+      throw new AppError(
+        'NETWORK_FAILURE',
+        `Could not find FFmpeg release for ${platform} (${variant})`,
+      );
+    }
 
     // BtbN publishes a single 'checksums.sha256' file covering all assets.
     // Also accept legacy 'sha256.txt' and any *.sha256 suffix for future-proofing.
-    const checksumsAsset = release.assets.find(a =>
-      a.name === 'checksums.sha256' || a.name === 'sha256.txt' || a.name.endsWith('.sha256')
+    const checksumsAsset = release.assets.find(
+      (a) => a.name === 'checksums.sha256' || a.name === 'sha256.txt' || a.name.endsWith('.sha256'),
     );
     let expectedSha: string | undefined;
     if (checksumsAsset) {
-      const checksums = await GithubReleaseProvider.downloadChecksums(checksumsAsset.browser_download_url);
+      const checksums = await GithubReleaseProvider.downloadChecksums(
+        checksumsAsset.browser_download_url,
+      );
       expectedSha = checksums[assetName];
     }
 
@@ -215,34 +264,48 @@ export class DependencyManager implements IDependencyManager {
       url: asset.browser_download_url,
       destination: tempArchive,
       expectedSha256: expectedSha,
-      onProgress: onProgress ? (d, t) => onProgress('ffmpeg', d, t) : undefined
+      onProgress: onProgress ? (d, t) => onProgress('ffmpeg', d, t) : undefined,
     });
 
     const extractDir = path.join(tempDir, assetNamePrefix);
     await this.fileSystem.delete(extractDir).catch(() => {});
-    
+
     if (ext === '.zip') {
       await SafeZipExtractor.extract({ sourceZip: tempArchive, targetDir: extractDir });
     } else {
       await this.fileSystem.ensureDir(extractDir);
-      
+
       // Security: Validate archive contents against path traversal before extraction
       const listResult = await this.runner.run({ bin: 'tar', args: ['-tf', tempArchive] });
       if (listResult.exitCode !== 0) {
-        throw new AppError('DEPENDENCY_INSTALL_FAILED', `Failed to read archive contents: ${listResult.stderr}`);
+        throw new AppError(
+          'DEPENDENCY_INSTALL_FAILED',
+          `Failed to read archive contents: ${listResult.stderr}`,
+        );
       }
-      
+
       const files = listResult.stdout.split('\n').filter(Boolean);
       for (const file of files) {
         const parts = file.split(/[/\\]/);
-        if (parts.includes('..') || path.isAbsolute(file) || file.startsWith('/') || file.startsWith('\\')) {
+        if (
+          parts.includes('..') ||
+          path.isAbsolute(file) ||
+          file.startsWith('/') ||
+          file.startsWith('\\')
+        ) {
           await this.fileSystem.delete(tempArchive).catch(() => {});
-          throw new AppError('DEPENDENCY_INSTALL_FAILED', 'Archive rejected due to unsafe path traversal in contents.');
+          throw new AppError(
+            'DEPENDENCY_INSTALL_FAILED',
+            'Archive rejected due to unsafe path traversal in contents.',
+          );
         }
       }
 
       // Safe extraction parameters for tar
-      const result = await this.runner.run({ bin: 'tar', args: ['-xf', tempArchive, '-C', extractDir] });
+      const result = await this.runner.run({
+        bin: 'tar',
+        args: ['-xf', tempArchive, '-C', extractDir],
+      });
       if (result.exitCode !== 0) {
         throw new AppError('DEPENDENCY_INSTALL_FAILED', `Tar extraction failed: ${result.stderr}`);
       }
@@ -263,12 +326,18 @@ export class DependencyManager implements IDependencyManager {
     if (!ffmpegStat || !ffmpegStat.isFile) {
       await this.fileSystem.delete(tempArchive).catch(() => {});
       await this.fileSystem.delete(extractDir).catch(() => {});
-      throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive is missing required executable: ${ffmpegExe}. Verify the selected BtbN variant includes both ffmpeg and ffprobe.`);
+      throw new AppError(
+        'DEPENDENCY_INSTALL_FAILED',
+        `Archive is missing required executable: ${ffmpegExe}. Verify the selected BtbN variant includes both ffmpeg and ffprobe.`,
+      );
     }
     if (!ffprobeStat || !ffprobeStat.isFile) {
       await this.fileSystem.delete(tempArchive).catch(() => {});
       await this.fileSystem.delete(extractDir).catch(() => {});
-      throw new AppError('DEPENDENCY_INSTALL_FAILED', `Archive is missing required executable: ${ffprobeExe}. The selected BtbN variant must include both ffmpeg and ffprobe.`);
+      throw new AppError(
+        'DEPENDENCY_INSTALL_FAILED',
+        `Archive is missing required executable: ${ffprobeExe}. The selected BtbN variant must include both ffmpeg and ffprobe.`,
+      );
     }
 
     if (!this.isWindows) {
@@ -280,18 +349,30 @@ export class DependencyManager implements IDependencyManager {
     const realFfmpeg = await this.fileSystem.realpath(tempFfmpeg).catch(() => null);
     const realFfprobe = await this.fileSystem.realpath(tempFfprobe).catch(() => null);
 
-    if (!realExtractDir || !realFfmpeg || !realFfprobe || !realFfmpeg.startsWith(realExtractDir) || !realFfprobe.startsWith(realExtractDir)) {
+    if (
+      !realExtractDir ||
+      !realFfmpeg ||
+      !realFfprobe ||
+      !realFfmpeg.startsWith(realExtractDir) ||
+      !realFfprobe.startsWith(realExtractDir)
+    ) {
       await this.fileSystem.delete(tempArchive).catch(() => {});
       await this.fileSystem.delete(extractDir).catch(() => {});
-      throw new AppError('DEPENDENCY_INSTALL_FAILED', 'Archive extraction escaped staging directory via symlinks.');
+      throw new AppError(
+        'DEPENDENCY_INSTALL_FAILED',
+        'Archive extraction escaped staging directory via symlinks.',
+      );
     }
 
     const ffmpegOutput = await this.getVersion(tempFfmpeg, ['-version']);
     const ffprobeOutput = await this.getVersion(tempFfprobe, ['-version']);
     if (!ffmpegOutput || !ffprobeOutput) {
-       await this.fileSystem.delete(tempArchive).catch(() => {});
-       await this.fileSystem.delete(extractDir).catch(() => {});
-       throw new AppError('DEPENDENCY_INSTALL_FAILED', 'Downloaded FFmpeg binaries failed execution test.');
+      await this.fileSystem.delete(tempArchive).catch(() => {});
+      await this.fileSystem.delete(extractDir).catch(() => {});
+      throw new AppError(
+        'DEPENDENCY_INSTALL_FAILED',
+        'Downloaded FFmpeg binaries failed execution test.',
+      );
     }
 
     // Activate the entire package as one logical unit
@@ -314,16 +395,29 @@ export class DependencyManager implements IDependencyManager {
     try {
       const stats = await this.fileSystem.stat(finalPath);
       if (stats.isFile || stats.isDirectory) {
-        await this.runner.run({ bin: this.isWindows ? 'cmd' : 'mv', args: this.isWindows ? ['/c', 'move', '/y', finalPath, oldPath] : [finalPath, oldPath] });
+        await this.runner.run({
+          bin: this.isWindows ? 'cmd' : 'mv',
+          args: this.isWindows ? ['/c', 'move', '/y', finalPath, oldPath] : [finalPath, oldPath],
+        });
       }
     } catch {}
 
-    await this.runner.run({ bin: this.isWindows ? 'cmd' : 'mv', args: this.isWindows ? ['/c', 'move', '/y', tempPath, finalPath] : [tempPath, finalPath] });
+    await this.runner.run({
+      bin: this.isWindows ? 'cmd' : 'mv',
+      args: this.isWindows ? ['/c', 'move', '/y', tempPath, finalPath] : [tempPath, finalPath],
+    });
   }
 
-  private getSource(binPath: string, configOverride?: string | null): 'config' | 'managed' | 'system' {
-    if (configOverride && binPath === configOverride) {return 'config';}
-    if (binPath.startsWith(this.managedBinDir)) {return 'managed';}
+  private getSource(
+    binPath: string,
+    configOverride?: string | null,
+  ): 'config' | 'managed' | 'system' {
+    if (configOverride && binPath === configOverride) {
+      return 'config';
+    }
+    if (binPath.startsWith(this.managedBinDir)) {
+      return 'managed';
+    }
     return 'system';
   }
 
@@ -331,7 +425,7 @@ export class DependencyManager implements IDependencyManager {
     const pathsToTry = [
       this.config.ytdlpPath,
       path.join(this.managedBinDir, this.isWindows ? 'yt-dlp.exe' : 'yt-dlp'),
-      'yt-dlp'
+      'yt-dlp',
     ].filter(Boolean) as string[];
 
     for (const binPath of pathsToTry) {
@@ -353,7 +447,14 @@ export class DependencyManager implements IDependencyManager {
       }
     }
 
-    return { name: 'yt-dlp', status: 'missing', version: null, path: null, source: null, minVersion: MIN_YTDLP_DATE };
+    return {
+      name: 'yt-dlp',
+      status: 'missing',
+      version: null,
+      path: null,
+      source: null,
+      minVersion: MIN_YTDLP_DATE,
+    };
   }
 
   private async detectFFmpeg(): Promise<IDependencyStatus> {
@@ -361,7 +462,7 @@ export class DependencyManager implements IDependencyManager {
       this.config.ffmpegPath,
       path.join(this.managedBinDir, 'ffmpeg_pkg', this.isWindows ? 'ffmpeg.exe' : 'ffmpeg'),
       path.join(this.managedBinDir, this.isWindows ? 'ffmpeg.exe' : 'ffmpeg'), // Legacy path fallback
-      'ffmpeg'
+      'ffmpeg',
     ].filter(Boolean) as string[];
 
     for (const binPath of pathsToTry) {
@@ -380,7 +481,14 @@ export class DependencyManager implements IDependencyManager {
       }
     }
 
-    return { name: 'ffmpeg', status: 'missing', version: null, path: null, source: null, minVersion: MIN_FFMPEG_VER };
+    return {
+      name: 'ffmpeg',
+      status: 'missing',
+      version: null,
+      path: null,
+      source: null,
+      minVersion: MIN_FFMPEG_VER,
+    };
   }
 
   private async detectFFprobe(): Promise<IDependencyStatus> {
@@ -388,7 +496,7 @@ export class DependencyManager implements IDependencyManager {
       this.config.ffprobePath,
       path.join(this.managedBinDir, 'ffmpeg_pkg', this.isWindows ? 'ffprobe.exe' : 'ffprobe'),
       path.join(this.managedBinDir, this.isWindows ? 'ffprobe.exe' : 'ffprobe'), // Legacy path fallback
-      'ffprobe'
+      'ffprobe',
     ].filter(Boolean) as string[];
 
     for (const binPath of pathsToTry) {
@@ -407,7 +515,14 @@ export class DependencyManager implements IDependencyManager {
       }
     }
 
-    return { name: 'ffprobe', status: 'missing', version: null, path: null, source: null, minVersion: MIN_FFMPEG_VER };
+    return {
+      name: 'ffprobe',
+      status: 'missing',
+      version: null,
+      path: null,
+      source: null,
+      minVersion: MIN_FFMPEG_VER,
+    };
   }
 
   private async getVersion(binPath: string, args: string[]): Promise<string | null> {
@@ -425,11 +540,9 @@ export class DependencyManager implements IDependencyManager {
   private async detectDeno(): Promise<IDependencyStatus> {
     const minVersion = '2.3.0';
     const name = this.isWindows ? 'deno.exe' : 'deno';
-    const pathsToTry = [
-      this.config.denoPath,
-      path.join(this.managedBinDir, name),
-      'deno'
-    ].filter(Boolean) as string[];
+    const pathsToTry = [this.config.denoPath, path.join(this.managedBinDir, name), 'deno'].filter(
+      Boolean,
+    ) as string[];
 
     for (const binPath of pathsToTry) {
       const output = await this.getVersion(binPath, ['--version']);
@@ -444,7 +557,7 @@ export class DependencyManager implements IDependencyManager {
             path: binPath,
             source: this.getSource(binPath, this.config.denoPath),
             minVersion,
-            reason: 'Malformed version output'
+            reason: 'Malformed version output',
           };
         }
         const isOutdated = compareVersions(version, minVersion) < 0;
@@ -454,7 +567,7 @@ export class DependencyManager implements IDependencyManager {
           version,
           path: binPath,
           source: this.getSource(binPath, this.config.denoPath),
-          minVersion
+          minVersion,
         };
       }
     }
@@ -473,7 +586,15 @@ export class DependencyManager implements IDependencyManager {
         const match = output.match(/v([0-9]+\.[0-9]+\.[0-9]+)/i);
         const version = match?.[1];
         if (!version) {
-          return { name: 'node', status: 'broken', version: 'unknown', path: binPath, source: 'system', minVersion, reason: 'Malformed version output' };
+          return {
+            name: 'node',
+            status: 'broken',
+            version: 'unknown',
+            path: binPath,
+            source: 'system',
+            minVersion,
+            reason: 'Malformed version output',
+          };
         }
         const isOutdated = compareVersions(version, minVersion) < 0;
         return {
@@ -482,7 +603,7 @@ export class DependencyManager implements IDependencyManager {
           version,
           path: binPath,
           source: 'system',
-          minVersion
+          minVersion,
         };
       }
     }
@@ -490,28 +611,30 @@ export class DependencyManager implements IDependencyManager {
     // SEA Mode detection / process.execPath fallback
     const execLower = process.execPath.toLowerCase();
     if (execLower.endsWith('node') || execLower.endsWith('node.exe')) {
-       const output = await this.getVersion(process.execPath, ['-v']);
-       if (output) {
-          const match = output.match(/v([0-9]+\.[0-9]+\.[0-9]+)/i);
-          const version = match?.[1];
-          if (version) {
-            const isOutdated = compareVersions(version, minVersion) < 0;
-            return {
-              name: 'node',
-              status: isOutdated ? 'outdated' : 'ok',
-              version,
-              path: process.execPath,
-              source: 'system',
-              minVersion
-            };
-          }
-       }
+      const output = await this.getVersion(process.execPath, ['-v']);
+      if (output) {
+        const match = output.match(/v([0-9]+\.[0-9]+\.[0-9]+)/i);
+        const version = match?.[1];
+        if (version) {
+          const isOutdated = compareVersions(version, minVersion) < 0;
+          return {
+            name: 'node',
+            status: isOutdated ? 'outdated' : 'ok',
+            version,
+            path: process.execPath,
+            source: 'system',
+            minVersion,
+          };
+        }
+      }
     }
 
     return { name: 'node', status: 'missing', version: null, path: null, source: null, minVersion };
   }
 
-  private async installDeno(onProgress?: (name: string, downloaded: number, total: number | undefined) => void): Promise<boolean> {
+  private async installDeno(
+    onProgress?: (name: string, downloaded: number, total: number | undefined) => void,
+  ): Promise<boolean> {
     await this.fileSystem.ensureDir(this.managedBinDir);
     const tempDir = path.join(this.managedBinDir, 'temp');
     await this.fileSystem.ensureDir(tempDir);
@@ -519,7 +642,7 @@ export class DependencyManager implements IDependencyManager {
     const platform = os.platform();
     const arch = os.arch();
     let assetName = 'deno-';
-    
+
     if (arch === 'arm64') {
       assetName += 'aarch64-';
     } else {
@@ -535,15 +658,17 @@ export class DependencyManager implements IDependencyManager {
     }
 
     const release = await GithubReleaseProvider.getLatestRelease('denoland/deno');
-    const asset = release.assets.find(a => a.name === assetName);
+    const asset = release.assets.find((a) => a.name === assetName);
     if (!asset) {
       throw new AppError('NETWORK_FAILURE', `Could not find Deno release for ${platform} ${arch}`);
     }
 
-    const checksumsAsset = release.assets.find(a => a.name === `${assetName}.sha256sum`);
+    const checksumsAsset = release.assets.find((a) => a.name === `${assetName}.sha256sum`);
     let expectedSha: string | undefined;
     if (checksumsAsset) {
-      const checksums = await GithubReleaseProvider.downloadChecksums(checksumsAsset.browser_download_url);
+      const checksums = await GithubReleaseProvider.downloadChecksums(
+        checksumsAsset.browser_download_url,
+      );
       expectedSha = checksums[assetName];
     }
 
@@ -552,7 +677,7 @@ export class DependencyManager implements IDependencyManager {
       url: asset.browser_download_url,
       destination: tempArchive,
       expectedSha256: expectedSha,
-      onProgress: onProgress ? (d, t) => onProgress('deno', d, t) : undefined
+      onProgress: onProgress ? (d, t) => onProgress('deno', d, t) : undefined,
     });
 
     const extractDir = path.join(tempDir, `deno-${platform}-${arch}`);
@@ -561,7 +686,7 @@ export class DependencyManager implements IDependencyManager {
 
     const denoExe = platform === 'win32' ? 'deno.exe' : 'deno';
     const tempDeno = path.join(extractDir, denoExe);
-    
+
     if (platform !== 'win32') {
       await this.runner.run({ bin: 'chmod', args: ['+x', tempDeno] });
     }
@@ -570,13 +695,16 @@ export class DependencyManager implements IDependencyManager {
     if (!versionOutput) {
       await this.fileSystem.delete(tempArchive).catch(() => {});
       await this.fileSystem.delete(extractDir).catch(() => {});
-      throw new AppError('DEPENDENCY_INSTALL_FAILED', 'Downloaded Deno binary failed execution test.');
+      throw new AppError(
+        'DEPENDENCY_INSTALL_FAILED',
+        'Downloaded Deno binary failed execution test.',
+      );
     }
 
     const finalBin = path.join(this.managedBinDir, denoExe);
     const oldBin = path.join(this.managedBinDir, `${denoExe}.old`);
     await this.atomicSwap(tempDeno, finalBin, oldBin);
-    
+
     await this.fileSystem.delete(tempArchive).catch(() => {});
     await this.fileSystem.delete(extractDir).catch(() => {});
     return true;

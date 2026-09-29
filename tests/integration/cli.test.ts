@@ -6,7 +6,7 @@ const CLI_PATH = join(process.cwd(), 'dist', 'cli', 'index.js');
 
 describe('CLI Integration', () => {
   // We need to build the project first for the CLI to be available in dist/
-  
+
   it('shows help when run with --help', async () => {
     const { stdout } = await execa('node', [CLI_PATH, '--help']);
     expect(stdout).toContain('Usage: nazzel');

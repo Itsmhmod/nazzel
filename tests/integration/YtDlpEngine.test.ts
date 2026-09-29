@@ -10,7 +10,10 @@ describe('YtDlpEngine Integration', () => {
   let fixtureData: string;
 
   beforeEach(async () => {
-    fixtureData = await fs.readFile(path.join(__dirname, '../fixtures/ytdlp-responses/video.json'), 'utf-8');
+    fixtureData = await fs.readFile(
+      path.join(__dirname, '../fixtures/ytdlp-responses/video.json'),
+      'utf-8',
+    );
     mockRunner = {
       run: vi.fn().mockResolvedValue({ exitCode: 0, stdout: fixtureData, stderr: '' }),
       spawn: vi.fn(),
@@ -20,7 +23,7 @@ describe('YtDlpEngine Integration', () => {
 
   it('correctly analyzes a video using real fixture data', async () => {
     const info = await engine.analyze('https://fake-url');
-    
+
     expect(info.id).toBe('jNQXAC9IVRw');
     expect(info.title).toBe('Me at the zoo');
     expect(info.duration).toBe(19);

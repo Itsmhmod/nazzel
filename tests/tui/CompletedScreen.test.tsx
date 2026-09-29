@@ -25,13 +25,18 @@ describe('CompletedScreen Component', () => {
       filePath: '/downloads/video.mp4',
       fileSize: 15000000,
       duration: 300, // 5:00
-      verified: true
+      verified: true,
     };
-    
+
     const { lastFrame } = render(
-      <CompletedScreen title="Test Finished Video" result={result as any} onRestart={vi.fn()} onQuit={vi.fn()} />
+      <CompletedScreen
+        title="Test Finished Video"
+        result={result as any}
+        onRestart={vi.fn()}
+        onQuit={vi.fn()}
+      />,
     );
-    
+
     const frame = lastFrame() || '';
     expect(frame).toContain('Test Finished Video');
     expect(frame).toContain('/downloads/video.mp4');
@@ -42,18 +47,14 @@ describe('CompletedScreen Component', () => {
 
   it('handles quit via q', () => {
     const quitMock = vi.fn();
-    render(
-      <CompletedScreen title="Done" result={null} onRestart={vi.fn()} onQuit={quitMock} />
-    );
+    render(<CompletedScreen title="Done" result={null} onRestart={vi.fn()} onQuit={quitMock} />);
     triggerInput('q');
     expect(quitMock).toHaveBeenCalled();
   });
 
   it('handles restart via r', () => {
     const restartMock = vi.fn();
-    render(
-      <CompletedScreen title="Done" result={null} onRestart={restartMock} onQuit={vi.fn()} />
-    );
+    render(<CompletedScreen title="Done" result={null} onRestart={restartMock} onQuit={vi.fn()} />);
     triggerInput('r');
     expect(restartMock).toHaveBeenCalled();
   });

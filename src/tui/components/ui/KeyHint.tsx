@@ -12,7 +12,11 @@ export function KeyHint({ keys }: KeyHintProps) {
       {keys.map((k, idx) => (
         <Box key={idx} marginRight={2}>
           <Text color={theme.muted}>
-            [<Text color={theme.text} bold>{k.key}</Text>] {k.label}
+            [
+            <Text color={theme.text} bold>
+              {k.key}
+            </Text>
+            ] {k.label}
           </Text>
         </Box>
       ))}

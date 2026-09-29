@@ -72,7 +72,8 @@ class Logger implements ILogger {
       return;
     }
     const hasContext =
-      Object.keys(this.baseContext).length > 0 || (context !== undefined && Object.keys(context).length > 0);
+      Object.keys(this.baseContext).length > 0 ||
+      (context !== undefined && Object.keys(context).length > 0);
     const mergedContext = hasContext ? { ...this.baseContext, ...context } : undefined;
     const entry: ILogEntry = {
       timestamp: new Date().toISOString(),

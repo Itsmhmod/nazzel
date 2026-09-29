@@ -21,7 +21,7 @@ describe('NodeFileSystem Integration', () => {
   it('can check if a file exists', async () => {
     const filePath = path.join(testDir, 'test.txt');
     await fs.writeFile(filePath, 'hello');
-    
+
     expect(await fileSystem.exists(filePath)).toBe(true);
     expect(await fileSystem.exists(path.join(testDir, 'nonexistent.txt'))).toBe(false);
   });
@@ -35,10 +35,10 @@ describe('NodeFileSystem Integration', () => {
   it('can move files', async () => {
     const src = path.join(testDir, 'src.txt');
     const dest = path.join(testDir, 'dest.txt');
-    
+
     await fs.writeFile(src, 'content');
     await fileSystem.move(src, dest);
-    
+
     expect(await fileSystem.exists(src)).toBe(false);
     expect(await fileSystem.exists(dest)).toBe(true);
   });

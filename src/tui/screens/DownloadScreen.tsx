@@ -50,20 +50,14 @@ export function DownloadScreen({ title, progress, onCancel }: DownloadScreenProp
   const speedStr = speed.padEnd(12, ' ');
   const fracStr = `${downloaded} / ${total}`.padStart(18, ' ');
   const etaStr = `ETA: ${eta}`.padEnd(12, ' ');
-  
+
   const barWidth = Math.max(10, columns - (isNarrow ? 10 : 50));
 
   return (
-    <Layout 
+    <Layout
       title="DOWNLOADING"
       subtitle={title || 'Media File'}
-      footer={
-        <KeyHint
-          keys={[
-            { key: 'q', label: 'Cancel' },
-          ]}
-        />
-      }
+      footer={<KeyHint keys={[{ key: 'q', label: 'Cancel' }]} />}
     >
       <Box paddingX={2} marginY={1} flexDirection="column">
         {phase === 'merging' || phase === 'converting' ? (
@@ -75,22 +69,30 @@ export function DownloadScreen({ title, progress, onCancel }: DownloadScreenProp
             <Box marginBottom={1} flexDirection={isNarrow ? 'column' : 'row'}>
               <ProgressBar percent={pct} width={barWidth} />
               <Box marginLeft={isNarrow ? 0 : 2} marginTop={isNarrow ? 1 : 0}>
-                <Text color={theme.primary} bold>{pct.toFixed(1)}%</Text>
+                <Text color={theme.primary} bold>
+                  {pct.toFixed(1)}%
+                </Text>
               </Box>
             </Box>
-            
+
             <Box flexDirection={isNarrow ? 'column' : 'row'} justifyContent="space-between">
               <Box>
                 <Text color={theme.muted}>SPEED: </Text>
-                <Text color={theme.text} bold>{speedStr}</Text>
+                <Text color={theme.text} bold>
+                  {speedStr}
+                </Text>
               </Box>
               <Box>
                 <Text color={theme.muted}>SIZE: </Text>
-                <Text color={theme.text} bold>{fracStr}</Text>
+                <Text color={theme.text} bold>
+                  {fracStr}
+                </Text>
               </Box>
               <Box>
                 <Text color={theme.muted}>ETA: </Text>
-                <Text color={theme.highlight} bold>{etaStr}</Text>
+                <Text color={theme.highlight} bold>
+                  {etaStr}
+                </Text>
               </Box>
             </Box>
           </Box>

@@ -7,12 +7,12 @@ export function doctorCommand(): Command {
   cmd.description('Check dependencies and system health');
   cmd.option('--url <url>', 'Check reachability and extraction for a specific URL');
   cmd.option('--json', 'Output report in JSON format');
-  
+
   cmd.action(async (options) => {
     const { diagnosticsRunner } = await createCompositionRoot();
-    
+
     const report = await diagnosticsRunner.run(options.url);
-    
+
     if (options.json) {
       console.log(JSON.stringify({ type: 'DIAGNOSTICS_REPORT', report }));
       if (!report.isHealthy) {
@@ -27,15 +27,19 @@ export function doctorCommand(): Command {
     for (const dep of report.dependencies.deps) {
       const source = dep.source ? ` [${dep.source}]` : '';
       const version = dep.version ? ` (v${dep.version})` : '';
-      
+
       let statusStr = dep.status.toUpperCase();
       if (dep.name === 'ffmpeg' && dep.status === 'missing' && process.platform === 'darwin') {
         statusStr = 'UNSUPPORTED (Please install via Homebrew)';
       }
-      
+
       console.log(`- ${dep.name}: ${statusStr}${version}${source}`);
-      if (dep.reason) {console.log(`    Reason: ${dep.reason}`);}
-      if (dep.path) {console.log(`    Path: ${dep.path}`);}
+      if (dep.reason) {
+        console.log(`    Reason: ${dep.reason}`);
+      }
+      if (dep.path) {
+        console.log(`    Path: ${dep.path}`);
+      }
     }
 
     if (options.url) {
@@ -47,7 +51,7 @@ export function doctorCommand(): Command {
     }
 
     console.log(); // Trailing newline
-    
+
     if (!report.isHealthy) {
       process.exitCode = 3;
     }

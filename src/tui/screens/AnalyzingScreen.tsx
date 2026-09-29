@@ -18,16 +18,10 @@ export function AnalyzingScreen({ url, onCancel }: AnalyzingScreenProps) {
   });
 
   return (
-    <Layout 
+    <Layout
       title="ANALYZING"
       subtitle="Fetching metadata..."
-      footer={
-        <KeyHint
-          keys={[
-            { key: 'Esc/q', label: 'Cancel' },
-          ]}
-        />
-      }
+      footer={<KeyHint keys={[{ key: 'Esc/q', label: 'Cancel' }]} />}
     >
       <Box paddingX={2} marginY={2} flexDirection="column">
         <Box marginBottom={2}>

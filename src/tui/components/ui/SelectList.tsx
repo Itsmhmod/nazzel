@@ -17,25 +17,25 @@ export interface SelectListProps<T> {
 
 export function SelectList<T>({ items, onSelect, onCancel, visibleRows }: SelectListProps<T>) {
   const [selectedIndex, setSelectedIndex] = React.useState(0);
-  
+
   // Calculate window based on selectedIndex
   let startIdx = 0;
   let endIdx = items.length;
-  
+
   if (visibleRows && visibleRows > 0) {
     if (items.length > visibleRows) {
       // Keep selectedIndex in the middle if possible
       const half = Math.floor(visibleRows / 2);
       startIdx = Math.max(0, selectedIndex - half);
       endIdx = startIdx + visibleRows;
-      
+
       if (endIdx > items.length) {
         endIdx = items.length;
         startIdx = Math.max(0, endIdx - visibleRows);
       }
     }
   }
-  
+
   const visibleItems = items.slice(startIdx, endIdx);
 
   useInput((input, key) => {
@@ -66,10 +66,10 @@ export function SelectList<T>({ items, onSelect, onCancel, visibleRows }: Select
               </Text>
             </Box>
             <Box>
-              {item.element ? item.element : (
-                <Text color={isSelected ? theme.highlight : theme.text}>
-                  {item.label}
-                </Text>
+              {item.element ? (
+                item.element
+              ) : (
+                <Text color={isSelected ? theme.highlight : theme.text}>{item.label}</Text>
               )}
             </Box>
           </Box>

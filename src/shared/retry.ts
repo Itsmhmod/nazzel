@@ -97,10 +97,7 @@ export async function withRetry<T>(
   operation: (attempt: number) => Promise<T>,
   options: RetryOptions = {},
 ): Promise<T> {
-  const maxAttempts = Math.min(
-    options.maxAttempts ?? DEFAULT_MAX_RETRIES,
-    MAX_RETRY_HARD_LIMIT,
-  );
+  const maxAttempts = Math.min(options.maxAttempts ?? DEFAULT_MAX_RETRIES, MAX_RETRY_HARD_LIMIT);
   let backoffMs = options.initialBackoffMs ?? DEFAULT_RETRY_BACKOFF_MS;
   let lastError: AppError | null = null;
 

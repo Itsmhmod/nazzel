@@ -16,7 +16,9 @@ export function RepairScreen({ report, progress, onConfirm, onQuit }: RepairScre
   const { exit } = useApp();
 
   useInput((input, key) => {
-    if (isRepairing) {return;}
+    if (isRepairing) {
+      return;
+    }
     if (key.return) {
       setIsRepairing(true);
       onConfirm();
@@ -31,15 +33,28 @@ export function RepairScreen({ report, progress, onConfirm, onQuit }: RepairScre
 
   return (
     <Layout title="SYSTEM REPAIR" subtitle="Missing Dependencies">
-      <Box flexDirection="column" gap={1} padding={2} marginY={1} borderStyle="round" borderColor="yellow">
+      <Box
+        flexDirection="column"
+        gap={1}
+        padding={2}
+        marginY={1}
+        borderStyle="round"
+        borderColor="yellow"
+      >
         <Box>
-          <Text color="yellow" bold>⚠ Dependencies Missing or Outdated</Text>
+          <Text color="yellow" bold>
+            ⚠ Dependencies Missing or Outdated
+          </Text>
         </Box>
 
         <Box flexDirection="column" marginLeft={2}>
-          {report.deps.filter(d => missing.includes(d.name)).map(d => (
-            <Text key={d.name}>• {d.name} <Text color="gray">({d.status})</Text></Text>
-          ))}
+          {report.deps
+            .filter((d) => missing.includes(d.name))
+            .map((d) => (
+              <Text key={d.name}>
+                • {d.name} <Text color="gray">({d.status})</Text>
+              </Text>
+            ))}
         </Box>
 
         {!isRepairing ? (
@@ -50,20 +65,24 @@ export function RepairScreen({ report, progress, onConfirm, onQuit }: RepairScre
 
         {!isRepairing ? (
           <Box marginTop={1} gap={2}>
-            <Text color="cyan" bold>[Enter] Install automatically</Text>
+            <Text color="cyan" bold>
+              [Enter] Install automatically
+            </Text>
             <Text color="gray">[q] Quit</Text>
           </Box>
         ) : (
           <Box marginTop={1} flexDirection="column" gap={1}>
             <Box gap={1}>
-              <Text color="cyan"><Spinner type="dots" /></Text>
+              <Text color="cyan">
+                <Spinner type="dots" />
+              </Text>
               <Text>Installing dependencies...</Text>
             </Box>
             {progress && (
               <Box marginLeft={2}>
                 <Text color="gray">Downloading {progress.name}: </Text>
                 <Text>
-                  {progress.total 
+                  {progress.total
                     ? `${Math.round((progress.downloaded / progress.total) * 100)}%`
                     : `${Math.round(progress.downloaded / 1024 / 1024)} MB`}
                 </Text>

@@ -5,7 +5,9 @@ import { HistoryScreen } from '../../src/tui/screens/HistoryScreen.js';
 
 describe('HistoryScreen Component', () => {
   it('renders loading state', () => {
-    const mockManager = { readAll: vi.fn().mockResolvedValue([]) } as unknown as import('../../src/application/HistoryManager.js').HistoryManager;
+    const mockManager = {
+      readAll: vi.fn().mockResolvedValue([]),
+    } as unknown as import('../../src/application/HistoryManager.js').HistoryManager;
     const { lastFrame } = render(<HistoryScreen onClose={vi.fn()} historyManager={mockManager} />);
     expect(lastFrame()).toContain('Loading history...');
   });
@@ -14,7 +16,6 @@ describe('HistoryScreen Component', () => {
     // Cannot easily mock the useEffect fetching inside render unless we pass mock state,
     // but the component fetches on mount. Let's provide a mock manager.
     // removed unused mock
-    
     // Test is asynchronous because of useEffect. ink-testing-library doesn't inherently await this.
     // This simple synchronous test might just see 'Loading...' first.
   });

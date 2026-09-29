@@ -9,11 +9,11 @@ const mockHttpRequest = vi.hoisted(() => vi.fn());
 const mockHttpsRequest = vi.hoisted(() => vi.fn());
 
 vi.mock('http', () => ({
-  request: mockHttpRequest
+  request: mockHttpRequest,
 }));
 
 vi.mock('https', () => ({
-  request: mockHttpsRequest
+  request: mockHttpsRequest,
 }));
 
 describe('DiagnosticsRunner', () => {
@@ -27,7 +27,7 @@ describe('DiagnosticsRunner', () => {
     deps: [],
     missingCritical: [],
     outdated: [],
-    checkedAt: new Date().toISOString()
+    checkedAt: new Date().toISOString(),
   };
 
   beforeEach(() => {
@@ -35,7 +35,7 @@ describe('DiagnosticsRunner', () => {
       detectAll: vi.fn().mockResolvedValue(validDeps),
       install: vi.fn(),
       update: vi.fn(),
-      validate: vi.fn()
+      validate: vi.fn(),
     } as any;
 
     mockFileSystem = {
@@ -48,13 +48,13 @@ describe('DiagnosticsRunner', () => {
       readFile: vi.fn(),
       writeJson: vi.fn().mockResolvedValue(undefined),
       appendLine: vi.fn(),
-      realpath: vi.fn().mockResolvedValue('/test/path')
+      realpath: vi.fn().mockResolvedValue('/test/path'),
     };
 
     mockConfigManager = {
       load: vi.fn().mockResolvedValue(undefined),
       get: vi.fn().mockReturnValue({ outputDir: '/test/out' }),
-      save: vi.fn()
+      save: vi.fn(),
     } as any;
 
     runner = new DiagnosticsRunner(
@@ -62,7 +62,7 @@ describe('DiagnosticsRunner', () => {
       mockFileSystem,
       mockConfigManager,
       '/test/config.json',
-      '/test/history.ndjson'
+      '/test/history.ndjson',
     );
 
     // Default mock network request to succeed
@@ -71,9 +71,11 @@ describe('DiagnosticsRunner', () => {
         const req = {
           on: vi.fn(),
           end: vi.fn().mockImplementation(() => {
-            if (cb) { cb({ statusCode: 200 }); }
+            if (cb) {
+              cb({ statusCode: 200 });
+            }
           }),
-          destroy: vi.fn()
+          destroy: vi.fn(),
         };
         return req;
       });
@@ -88,7 +90,7 @@ describe('DiagnosticsRunner', () => {
 
   it('reports healthy environment when everything passes', async () => {
     const report = await runner.run();
-    
+
     expect(report.isHealthy).toBe(true);
     expect(report.dependencies.allOk).toBe(true);
     expect(report.outputDir.status).toBe('ok');
@@ -99,18 +101,18 @@ describe('DiagnosticsRunner', () => {
 
   it('reports dependency failure if deps are missing', async () => {
     mockDepManager.detectAll.mockResolvedValue({ ...validDeps, allOk: false });
-    
+
     const report = await runner.run();
-    
+
     expect(report.isHealthy).toBe(false);
     expect(report.dependencies.allOk).toBe(false);
   });
 
   it('reports output path invalid if not writable', async () => {
     mockFileSystem.ensureDir.mockRejectedValue(new Error('Permission denied'));
-    
+
     const report = await runner.run();
-    
+
     expect(report.isHealthy).toBe(false);
     expect(report.outputDir.status).toBe('error');
     expect(report.outputDir.details).toContain('Permission denied');
@@ -121,10 +123,12 @@ describe('DiagnosticsRunner', () => {
       mockFn.mockImplementation((_url: any, _options: any, _cb: any) => {
         const req = {
           on: (event: string, handler: Function) => {
-            if (event === 'error') { setTimeout(handler as any, 0); }
+            if (event === 'error') {
+              setTimeout(handler as any, 0);
+            }
           },
           end: vi.fn(),
-          destroy: vi.fn()
+          destroy: vi.fn(),
         };
         return req;
       });
@@ -133,7 +137,7 @@ describe('DiagnosticsRunner', () => {
     setupFailReq(mockHttpsRequest);
 
     const report = await runner.run();
-    
+
     expect(report.isHealthy).toBe(false);
     expect(report.network.status).toBe('offline');
   });

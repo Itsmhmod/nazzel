@@ -17,7 +17,7 @@ export class Downloader {
   static async downloadFile(options: DownloadOptions): Promise<void> {
     return new Promise((resolve, reject) => {
       const { url, destination, expectedSha256, onProgress, signal } = options;
-      
+
       const parsedUrl = new URL(url);
       const reqFn = parsedUrl.protocol === 'http:' ? http.get : https.get;
 
@@ -44,13 +44,20 @@ export class Downloader {
             writeStream.close();
             // Follow redirect once
             return resolve(
-              this.downloadFile({ ...options, url: redirectUrl.startsWith('http') ? redirectUrl : new URL(redirectUrl, url).toString() })
+              this.downloadFile({
+                ...options,
+                url: redirectUrl.startsWith('http')
+                  ? redirectUrl
+                  : new URL(redirectUrl, url).toString(),
+              }),
             );
           }
 
           if (response.statusCode && response.statusCode >= 400) {
             writeStream.close();
-            return reject(new AppError('NETWORK_FAILURE', `HTTP Error ${response.statusCode} for ${url}`));
+            return reject(
+              new AppError('NETWORK_FAILURE', `HTTP Error ${response.statusCode} for ${url}`),
+            );
           }
 
           const contentLength = response.headers['content-length'];
@@ -60,8 +67,12 @@ export class Downloader {
 
           response.on('data', (chunk: Buffer) => {
             downloaded += chunk.length;
-            if (hash) {hash.update(chunk);}
-            if (onProgress) {onProgress(downloaded, total);}
+            if (hash) {
+              hash.update(chunk);
+            }
+            if (onProgress) {
+              onProgress(downloaded, total);
+            }
           });
 
           response.pipe(writeStream);
@@ -69,7 +80,7 @@ export class Downloader {
           response.on('end', () => {
             writeStream.close();
           });
-        }
+        },
       );
 
       request.on('error', (err) => {
@@ -86,8 +97,8 @@ export class Downloader {
             return reject(
               new AppError(
                 'VERIFY_FAILURE',
-                `Checksum mismatch. Expected ${expectedSha256}, got ${actualHash}`
-              )
+                `Checksum mismatch. Expected ${expectedSha256}, got ${actualHash}`,
+              ),
             );
           }
         }

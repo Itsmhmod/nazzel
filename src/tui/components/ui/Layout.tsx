@@ -11,21 +11,35 @@ export interface LayoutProps {
   hideBorder?: boolean;
 }
 
-export function Layout({ children, title = 'NAZZEL', subtitle = 'Media Downloader', footer, hideBorder = false }: LayoutProps) {
+export function Layout({
+  children,
+  title = 'NAZZEL',
+  subtitle = 'Media Downloader',
+  footer,
+  hideBorder = false,
+}: LayoutProps) {
   const { columns, rows } = useTerminalSize();
 
   return (
-    <Box 
-      flexDirection="column" 
-      width={columns} 
-      minHeight={rows} 
+    <Box
+      flexDirection="column"
+      width={columns}
+      minHeight={rows}
       padding={hideBorder ? 0 : 1}
       borderStyle={hideBorder ? undefined : 'round'}
       borderColor={theme.primary}
     >
       {/* Header */}
-      <Box marginBottom={1} borderBottom={!hideBorder} borderStyle="single" borderColor={theme.muted} paddingBottom={hideBorder ? 0 : 1}>
-        <Text color={theme.primary} bold>{title}</Text>
+      <Box
+        marginBottom={1}
+        borderBottom={!hideBorder}
+        borderStyle="single"
+        borderColor={theme.muted}
+        paddingBottom={hideBorder ? 0 : 1}
+      >
+        <Text color={theme.primary} bold>
+          {title}
+        </Text>
         {subtitle && <Text color={theme.muted}> - {subtitle}</Text>}
       </Box>
 
@@ -36,7 +50,13 @@ export function Layout({ children, title = 'NAZZEL', subtitle = 'Media Downloade
 
       {/* Footer */}
       {footer && (
-        <Box marginTop={1} borderTop={!hideBorder} borderStyle="single" borderColor={theme.muted} paddingTop={hideBorder ? 0 : 1}>
+        <Box
+          marginTop={1}
+          borderTop={!hideBorder}
+          borderStyle="single"
+          borderColor={theme.muted}
+          paddingTop={hideBorder ? 0 : 1}
+        >
           {footer}
         </Box>
       )}

@@ -19,8 +19,12 @@ async function main() {
       process.exitCode = 0;
       return;
     }
-    
-    if (err.code === 'commander.unknownOption' || err.code === 'commander.missingArgument' || err.code === 'commander.invalidArgument') {
+
+    if (
+      err.code === 'commander.unknownOption' ||
+      err.code === 'commander.missingArgument' ||
+      err.code === 'commander.invalidArgument'
+    ) {
       process.exitCode = EXIT_CODES.CLI_INVALID_ARGS;
       return;
     }
@@ -45,13 +49,15 @@ process.on('uncaughtException', (error) => {
 
 // Handle SIGINT (Ctrl+C)
 process.on('SIGINT', () => {
-  if (isShuttingDown) { return; } // Prevent duplicate handling
+  if (isShuttingDown) {
+    return;
+  } // Prevent duplicate handling
   isShuttingDown = true;
   process.exitCode = EXIT_CODES.CANCELLED;
-  
+
   // Try to write NDJSON for the cancellation event if in machine-readable mode
   process.stdout.write(JSON.stringify({ type: 'PROCESS_INTERRUPTED' }) + '\n');
-  
+
   // Give child processes (like yt-dlp) a moment to clean up via their own SIGINT
   // We fall back to process.exit() if Node doesn't exit naturally after 2 seconds
   setTimeout(() => {

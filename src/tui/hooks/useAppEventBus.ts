@@ -6,7 +6,11 @@ import type { AppEvent } from '@nazzel/domain/events.js';
  * Subscribes to the application event bus and fires the callback for every event.
  * If throttleMs is provided, events of type PROGRESS_UPDATE are throttled.
  */
-export function useAppEventBus(eventBus: IAppEventBus, callback: (event: AppEvent) => void, throttleMs?: number) {
+export function useAppEventBus(
+  eventBus: IAppEventBus,
+  callback: (event: AppEvent) => void,
+  throttleMs?: number,
+) {
   const lastProgressTime = useRef<number>(0);
   const pendingEvent = useRef<AppEvent | null>(null);
   const timerId = useRef<NodeJS.Timeout | null>(null);
@@ -21,7 +25,7 @@ export function useAppEventBus(eventBus: IAppEventBus, callback: (event: AppEven
       if (throttleMs && event.type === 'PROGRESS_UPDATE') {
         const now = Date.now();
         const timeSinceLast = now - lastProgressTime.current;
-        
+
         if (timeSinceLast < throttleMs) {
           pendingEvent.current = event;
           if (!timerId.current) {
@@ -36,7 +40,7 @@ export function useAppEventBus(eventBus: IAppEventBus, callback: (event: AppEven
           }
           return;
         }
-        
+
         lastProgressTime.current = now;
         pendingEvent.current = null;
         if (timerId.current) {

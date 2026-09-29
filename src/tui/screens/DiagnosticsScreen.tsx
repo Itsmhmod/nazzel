@@ -4,7 +4,10 @@ import { theme } from '../theme.js';
 import { KeyHint } from '../components/ui/KeyHint.js';
 import { Spinner } from '../components/ui/Spinner.js';
 import { Layout } from '../components/ui/Layout.js';
-import type { IDiagnosticsRunner, IDiagnosticsReport } from '../../application/interfaces/IDiagnosticsRunner.js';
+import type {
+  IDiagnosticsRunner,
+  IDiagnosticsReport,
+} from '../../application/interfaces/IDiagnosticsRunner.js';
 
 export interface DiagnosticsScreenProps {
   runner: IDiagnosticsRunner;
@@ -15,9 +18,12 @@ export function DiagnosticsScreen({ runner, onClose }: DiagnosticsScreenProps) {
   const [report, setReport] = useState<IDiagnosticsReport | null>(null);
 
   useEffect(() => {
-    runner.run().then(setReport).catch(() => {
-      // In a real app we'd handle error state here
-    });
+    runner
+      .run()
+      .then(setReport)
+      .catch(() => {
+        // In a real app we'd handle error state here
+      });
   }, [runner]);
 
   useInput((input, key) => {
@@ -38,20 +44,21 @@ export function DiagnosticsScreen({ runner, onClose }: DiagnosticsScreenProps) {
   }
 
   return (
-    <Layout 
+    <Layout
       title="DIAGNOSTICS"
       subtitle="System Health"
-      footer={
-        <KeyHint
-          keys={[
-            { key: 'Esc/d', label: 'Close' },
-          ]}
-        />
-      }
+      footer={<KeyHint keys={[{ key: 'Esc/d', label: 'Close' }]} />}
     >
       <Box flexDirection="column" paddingX={2} marginY={1}>
-        <Box marginBottom={1} borderStyle="single" borderColor={report.dependencies.allOk ? theme.success : theme.error} padding={1}>
-          <Text bold color={theme.text}>Overall Health: </Text>
+        <Box
+          marginBottom={1}
+          borderStyle="single"
+          borderColor={report.dependencies.allOk ? theme.success : theme.error}
+          padding={1}
+        >
+          <Text bold color={theme.text}>
+            Overall Health:{' '}
+          </Text>
           <Text color={report.dependencies.allOk ? theme.success : theme.error}>
             {report.dependencies.allOk ? 'OK' : 'ISSUES DETECTED'}
           </Text>

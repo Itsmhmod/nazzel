@@ -21,16 +21,19 @@ export class HistoryManager {
     };
 
     const line = JSON.stringify(fullEntry);
-    
+
     try {
       await this.fileSystem.appendLine(this.historyPath, line);
     } catch (error: any) {
-      throw new AppError('FS_WRITE_FAILED', 'Failed to append history record', { cause: error, context: { path: this.historyPath } });
+      throw new AppError('FS_WRITE_FAILED', 'Failed to append history record', {
+        cause: error,
+        context: { path: this.historyPath },
+      });
     }
   }
 
   /**
-   * Reads and parses all history records. 
+   * Reads and parses all history records.
    * A single malformed record will be skipped and will not corrupt the whole view.
    */
   async readAll(): Promise<IHistoryEntry[]> {
@@ -43,7 +46,10 @@ export class HistoryManager {
     try {
       rawData = await this.fileSystem.readFile(this.historyPath);
     } catch (error: any) {
-      throw new AppError('FS_WRITE_FAILED', 'Failed to read history file', { cause: error, context: { path: this.historyPath } });
+      throw new AppError('FS_WRITE_FAILED', 'Failed to read history file', {
+        cause: error,
+        context: { path: this.historyPath },
+      });
     }
 
     const lines = rawData.split('\n');
@@ -77,11 +83,14 @@ export class HistoryManager {
     if (!exists) {
       return;
     }
-    
+
     try {
       await this.fileSystem.delete(this.historyPath);
     } catch (error: any) {
-      throw new AppError('FS_WRITE_FAILED', 'Failed to clear history file', { cause: error, context: { path: this.historyPath } });
+      throw new AppError('FS_WRITE_FAILED', 'Failed to clear history file', {
+        cause: error,
+        context: { path: this.historyPath },
+      });
     }
   }
 
@@ -100,7 +109,7 @@ export class HistoryManager {
         return false;
       }
     }
-    
+
     if (typeof data.fileSize !== 'number') {
       return false;
     }

@@ -22,9 +22,13 @@ function formatSize(bytes: number | null): string {
   return `${mb.toFixed(1)} MB`;
 }
 
-export function FormatSelectionScreen({ mediaInfo, onSelect, onCancel }: FormatSelectionScreenProps) {
+export function FormatSelectionScreen({
+  mediaInfo,
+  onSelect,
+  onCancel,
+}: FormatSelectionScreenProps) {
   const { rows } = useTerminalSize();
-  
+
   const items = useMemo(() => {
     const sorted = [...mediaInfo.formats].sort((a, b) => {
       if (!a.isAudioOnly && !a.isVideoOnly && (b.isAudioOnly || b.isVideoOnly)) {
@@ -48,13 +52,13 @@ export function FormatSelectionScreen({ mediaInfo, onSelect, onCancel }: FormatS
                 <Text color={theme.text}>Best Quality (Auto-merged)</Text>
               </Box>
             </Box>
-          )
+          ),
         };
       }
 
       const sizeStr = formatSize(f.filesize).padStart(10);
       const extStr = f.ext.toUpperCase().padEnd(5);
-      
+
       let badgeLabel = 'VIDEO';
       let badgeBg: string = theme.info;
       let resStr = (f.resolution || 'N/A').padEnd(10);
@@ -86,7 +90,7 @@ export function FormatSelectionScreen({ mediaInfo, onSelect, onCancel }: FormatS
               <Text color={theme.highlight}>{sizeStr}</Text>
             </Box>
           </Box>
-        )
+        ),
       };
     };
 
@@ -94,7 +98,7 @@ export function FormatSelectionScreen({ mediaInfo, onSelect, onCancel }: FormatS
   }, [mediaInfo]);
 
   return (
-    <Layout 
+    <Layout
       title="FORMAT SELECTION"
       subtitle={mediaInfo.title || 'Unknown Title'}
       footer={

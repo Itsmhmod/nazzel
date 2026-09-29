@@ -14,6 +14,46 @@ export interface GithubRelease {
 }
 
 export class GithubReleaseProvider {
+  static async getReleaseByTag(repo: string, tag: string): Promise<GithubRelease> {
+    return new Promise((resolve, reject) => {
+      const url = `https://api.github.com/repos/${repo}/releases/tags/${tag}`;
+
+      const request = https.get(
+        url,
+        {
+          headers: {
+            'User-Agent': 'NazzelDownloader/0.1.0',
+            Accept: 'application/vnd.github.v3+json',
+          },
+        },
+        (res) => {
+          if (res.statusCode && res.statusCode >= 400) {
+            return reject(
+              new AppError(
+                'NETWORK_FAILURE',
+                `GitHub API Error ${res.statusCode} for ${repo} tag ${tag}`,
+              ),
+            );
+          }
+
+          let data = '';
+          res.on('data', (chunk) => (data += chunk));
+          res.on('end', () => {
+            try {
+              const release = JSON.parse(data);
+              resolve(release);
+            } catch {
+              reject(new AppError('NETWORK_FAILURE', 'Invalid JSON from GitHub API'));
+            }
+          });
+        },
+      );
+
+      request.on('error', (err) => {
+        reject(new AppError('NETWORK_FAILURE', err.message));
+      });
+    });
+  }
   static async getLatestRelease(repo: string): Promise<GithubRelease> {
     return new Promise((resolve, reject) => {
       const url = `https://api.github.com/repos/${repo}/releases/latest`;
@@ -23,16 +63,18 @@ export class GithubReleaseProvider {
         {
           headers: {
             'User-Agent': 'NazzelDownloader/0.1.0',
-            'Accept': 'application/vnd.github.v3+json'
+            Accept: 'application/vnd.github.v3+json',
           },
         },
         (res) => {
           if (res.statusCode && res.statusCode >= 400) {
-            return reject(new AppError('NETWORK_FAILURE', `GitHub API Error ${res.statusCode} for ${repo}`));
+            return reject(
+              new AppError('NETWORK_FAILURE', `GitHub API Error ${res.statusCode} for ${repo}`),
+            );
           }
 
           let data = '';
-          res.on('data', chunk => data += chunk);
+          res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
             try {
               const release = JSON.parse(data);
@@ -41,7 +83,7 @@ export class GithubReleaseProvider {
               reject(new AppError('NETWORK_FAILURE', 'Invalid JSON from GitHub API'));
             }
           });
-        }
+        },
       );
 
       request.on('error', (err) => {
@@ -68,11 +110,13 @@ export class GithubReleaseProvider {
           }
 
           if (res.statusCode && res.statusCode >= 400) {
-            return reject(new AppError('NETWORK_FAILURE', `HTTP Error ${res.statusCode} getting checksums`));
+            return reject(
+              new AppError('NETWORK_FAILURE', `HTTP Error ${res.statusCode} getting checksums`),
+            );
           }
 
           let data = '';
-          res.on('data', chunk => data += chunk);
+          res.on('data', (chunk) => (data += chunk));
           res.on('end', () => {
             const checksums: Record<string, string> = {};
             const lines = data.split('\n');
@@ -105,7 +149,7 @@ export class GithubReleaseProvider {
             }
             resolve(checksums);
           });
-        }
+        },
       );
 
       request.on('error', (err) => {

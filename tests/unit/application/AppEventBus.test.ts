@@ -36,7 +36,7 @@ describe('AppEventBus', () => {
 
   it('safely handles a subscriber throwing an error', () => {
     const bus = new AppEventBus();
-    
+
     // Spy on logger.error in test output
     const loggerErrorSpy = vi.spyOn(getLogger(), 'error');
 
@@ -49,7 +49,7 @@ describe('AppEventBus', () => {
     bus.subscribe(goodCallback);
 
     const event: AppEvent = { type: 'DOWNLOAD_CANCELLED', downloadId: '1' };
-    
+
     // Should not throw
     bus.emit(event);
 
@@ -64,7 +64,7 @@ describe('AppEventBus', () => {
     const bus = new AppEventBus();
     // eslint-disable-next-line prefer-const
     let unsub1: () => void;
-    
+
     const callback1 = vi.fn().mockImplementation(() => {
       // Unsubscribes itself during execution
       unsub1();
@@ -75,7 +75,7 @@ describe('AppEventBus', () => {
     bus.subscribe(callback2);
 
     bus.emit({ type: 'DOWNLOAD_CANCELLED', downloadId: '1' });
-    
+
     expect(callback1).toHaveBeenCalledTimes(1);
     expect(callback2).toHaveBeenCalledTimes(1);
 
@@ -90,10 +90,10 @@ describe('AppEventBus', () => {
     const bus = new AppEventBus();
     const callback = vi.fn();
     bus.subscribe(callback);
-    
+
     bus.clear();
     bus.emit({ type: 'DOWNLOAD_CANCELLED', downloadId: '1' });
-    
+
     expect(callback).not.toHaveBeenCalled();
   });
 });

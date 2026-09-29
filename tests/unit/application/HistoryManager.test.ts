@@ -29,7 +29,7 @@ describe('HistoryManager', () => {
       readFile: vi.fn().mockResolvedValue(''),
       writeJson: vi.fn(),
       appendLine: vi.fn().mockResolvedValue(undefined),
-      realpath: vi.fn().mockResolvedValue('/test/history.ndjson')
+      realpath: vi.fn().mockResolvedValue('/test/history.ndjson'),
     };
     manager = new HistoryManager(mockFileSystem, '/test/history.ndjson');
   });
@@ -40,7 +40,7 @@ describe('HistoryManager', () => {
     expect(mockFileSystem.appendLine).toHaveBeenCalledTimes(1);
     const args = mockFileSystem.appendLine.mock.calls[0]!;
     expect(args[0]).toBe('/test/history.ndjson');
-    
+
     const writtenJson = JSON.parse(args[1] as string);
     expect(writtenJson.schemaVersion).toBe(1);
     expect(writtenJson.id).toBe('test-123');
@@ -49,11 +49,11 @@ describe('HistoryManager', () => {
   it('reads all valid records', async () => {
     const validLine1 = JSON.stringify({ ...validRecordBase, schemaVersion: 1, id: '1' });
     const validLine2 = JSON.stringify({ ...validRecordBase, schemaVersion: 1, id: '2' });
-    
+
     mockFileSystem.readFile.mockResolvedValue(`${validLine1}\n${validLine2}\n`);
 
     const records = await manager.readAll();
-    
+
     expect(records).toHaveLength(2);
     expect(records[0]?.id).toBe('1');
     expect(records[1]?.id).toBe('2');
@@ -62,16 +62,21 @@ describe('HistoryManager', () => {
   it('tolerates malformed and partial records', async () => {
     const validLine1 = JSON.stringify({ ...validRecordBase, schemaVersion: 1, id: '1' });
     const corruptedLine = '{ "id": "2", "timestamp": "broken'; // partial JSON
-    const invalidStatusLine = JSON.stringify({ ...validRecordBase, schemaVersion: 1, id: '3', status: 'unknown_magic' });
+    const invalidStatusLine = JSON.stringify({
+      ...validRecordBase,
+      schemaVersion: 1,
+      id: '3',
+      status: 'unknown_magic',
+    });
     const missingFieldsLine = JSON.stringify({ id: '4', schemaVersion: 1 });
     const validLine2 = JSON.stringify({ ...validRecordBase, schemaVersion: 1, id: '5' });
 
     mockFileSystem.readFile.mockResolvedValue(
-      `${validLine1}\n${corruptedLine}\n${invalidStatusLine}\n${missingFieldsLine}\n${validLine2}\n`
+      `${validLine1}\n${corruptedLine}\n${invalidStatusLine}\n${missingFieldsLine}\n${validLine2}\n`,
     );
 
     const records = await manager.readAll();
-    
+
     // Only the two valid ones should survive
     expect(records).toHaveLength(2);
     expect(records[0]?.id).toBe('1');
@@ -80,9 +85,9 @@ describe('HistoryManager', () => {
 
   it('returns empty array if file does not exist', async () => {
     mockFileSystem.exists.mockResolvedValue(false);
-    
+
     const records = await manager.readAll();
-    
+
     expect(records).toEqual([]);
     expect(mockFileSystem.readFile).not.toHaveBeenCalled();
   });
@@ -90,14 +95,14 @@ describe('HistoryManager', () => {
   it('clears history file', async () => {
     mockFileSystem.exists.mockResolvedValue(true);
     await manager.clear();
-    
+
     expect(mockFileSystem.delete).toHaveBeenCalledWith('/test/history.ndjson');
   });
 
   it('does not throw on clear if file does not exist', async () => {
     mockFileSystem.exists.mockResolvedValue(false);
     await manager.clear();
-    
+
     expect(mockFileSystem.delete).not.toHaveBeenCalled();
   });
 });

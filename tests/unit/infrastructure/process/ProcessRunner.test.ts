@@ -29,9 +29,13 @@ describe('ProcessRunner', () => {
         args: ['arg1'],
       });
 
-      expect(execaMod.execa).toHaveBeenCalledWith('testbin', ['arg1'], expect.objectContaining({
-        reject: false,
-      }));
+      expect(execaMod.execa).toHaveBeenCalledWith(
+        'testbin',
+        ['arg1'],
+        expect.objectContaining({
+          reject: false,
+        }),
+      );
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toBe('success');
     });
@@ -42,9 +46,9 @@ describe('ProcessRunner', () => {
 
       vi.mocked(execaMod.execa).mockRejectedValueOnce(timeoutError);
 
-      await expect(runner.run({ bin: 'test', args: [], timeoutMs: 100 })).rejects.toMatchObject(
-        { code: 'PROCESS_CRASH' }
-      );
+      await expect(runner.run({ bin: 'test', args: [], timeoutMs: 100 })).rejects.toMatchObject({
+        code: 'PROCESS_CRASH',
+      });
     });
 
     it('passes options accurately without shell execution', async () => {
@@ -58,18 +62,26 @@ describe('ProcessRunner', () => {
         bin: 'safe_bin',
         args: ['--arg', 'with space'],
         cwd: '/tmp',
-        env: { TEST: '1' }
+        env: { TEST: '1' },
       });
 
-      expect(execaMod.execa).toHaveBeenCalledWith('safe_bin', ['--arg', 'with space'], expect.objectContaining({
-        reject: false,
-        cwd: '/tmp',
-        env: { TEST: '1' }
-      }));
+      expect(execaMod.execa).toHaveBeenCalledWith(
+        'safe_bin',
+        ['--arg', 'with space'],
+        expect.objectContaining({
+          reject: false,
+          cwd: '/tmp',
+          env: { TEST: '1' },
+        }),
+      );
       // Note: execa defaults to shell: false. We ensure we never pass shell: true.
-      expect(execaMod.execa).not.toHaveBeenCalledWith(expect.anything(), expect.anything(), expect.objectContaining({
-        shell: true
-      }));
+      expect(execaMod.execa).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.anything(),
+        expect.objectContaining({
+          shell: true,
+        }),
+      );
     });
   });
 

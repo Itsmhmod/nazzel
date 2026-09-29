@@ -10,15 +10,25 @@ export interface TextInputProps {
   width?: number;
 }
 
-export function TextInput({ value, onChange, onSubmit, placeholder = 'Type here...', width = 50 }: TextInputProps) {
+export function TextInput({
+  value,
+  onChange,
+  onSubmit,
+  placeholder = 'Type here...',
+  width = 50,
+}: TextInputProps) {
   const [cursorOffset, setCursorOffset] = useState(0); // Offset from the right end (0 = end)
 
   useInput((input, key) => {
     if (key.return) {
-      if (onSubmit) { onSubmit(value); }
+      if (onSubmit) {
+        onSubmit(value);
+      }
     } else if (key.backspace || key.delete) {
       if (value.length > 0 && cursorOffset < value.length) {
-        const newValue = value.slice(0, value.length - cursorOffset - 1) + value.slice(value.length - cursorOffset);
+        const newValue =
+          value.slice(0, value.length - cursorOffset - 1) +
+          value.slice(value.length - cursorOffset);
         onChange(newValue);
       }
     } else if (key.leftArrow) {
@@ -30,7 +40,10 @@ export function TextInput({ value, onChange, onSubmit, placeholder = 'Type here.
     } else if (key.ctrl && input === 'e') {
       setCursorOffset(0);
     } else if (input && !key.ctrl && !key.meta && !key.upArrow && !key.downArrow) {
-      const newValue = value.slice(0, value.length - cursorOffset) + input + value.slice(value.length - cursorOffset);
+      const newValue =
+        value.slice(0, value.length - cursorOffset) +
+        input +
+        value.slice(value.length - cursorOffset);
       onChange(newValue);
     }
   });
@@ -50,7 +63,9 @@ export function TextInput({ value, onChange, onSubmit, placeholder = 'Type here.
       ) : (
         <Text>
           {beforeCursor}
-          <Text backgroundColor={theme.text} color={theme.bgDark}>{atCursor}</Text>
+          <Text backgroundColor={theme.text} color={theme.bgDark}>
+            {atCursor}
+          </Text>
           {afterCursor}
         </Text>
       )}

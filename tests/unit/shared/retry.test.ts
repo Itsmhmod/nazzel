@@ -98,9 +98,7 @@ describe('withRetry', () => {
 
   it('does not retry on non-recoverable AppError', async () => {
     const op = vi.fn().mockRejectedValue(new AppError('DEPENDENCY_MISSING', 'no dep'));
-    await expect(withRetry(op, { maxAttempts: 3, initialBackoffMs: 1 })).rejects.toThrow(
-      AppError,
-    );
+    await expect(withRetry(op, { maxAttempts: 3, initialBackoffMs: 1 })).rejects.toThrow(AppError);
     expect(op).toHaveBeenCalledTimes(1);
   });
 
@@ -113,23 +111,15 @@ describe('withRetry', () => {
   });
 
   it('exhausts all attempts and throws the last error', async () => {
-    const op = vi
-      .fn()
-      .mockRejectedValue(new AppError('NETWORK_FAILURE', 'always fails'));
-    await expect(withRetry(op, { maxAttempts: 3, initialBackoffMs: 1 })).rejects.toThrow(
-      AppError,
-    );
+    const op = vi.fn().mockRejectedValue(new AppError('NETWORK_FAILURE', 'always fails'));
+    await expect(withRetry(op, { maxAttempts: 3, initialBackoffMs: 1 })).rejects.toThrow(AppError);
     expect(op).toHaveBeenCalledTimes(3);
   });
 
   it('calls onRetry with attempt number on each retry', async () => {
     const onRetry = vi.fn();
-    const op = vi
-      .fn()
-      .mockRejectedValue(new AppError('NETWORK_FAILURE', 'fail'));
-    await expect(
-      withRetry(op, { maxAttempts: 3, initialBackoffMs: 1, onRetry }),
-    ).rejects.toThrow();
+    const op = vi.fn().mockRejectedValue(new AppError('NETWORK_FAILURE', 'fail'));
+    await expect(withRetry(op, { maxAttempts: 3, initialBackoffMs: 1, onRetry })).rejects.toThrow();
     // onRetry is called between attempts 1→2 and 2→3 (not after the last failure)
     expect(onRetry).toHaveBeenCalledTimes(2);
     expect(onRetry).toHaveBeenNthCalledWith(1, 1, expect.any(AppError));
@@ -137,12 +127,8 @@ describe('withRetry', () => {
   });
 
   it('clamps maxAttempts to MAX_RETRY_HARD_LIMIT', async () => {
-    const op = vi
-      .fn()
-      .mockRejectedValue(new AppError('NETWORK_FAILURE', 'fail'));
-    await expect(
-      withRetry(op, { maxAttempts: 999, initialBackoffMs: 1 }),
-    ).rejects.toThrow();
+    const op = vi.fn().mockRejectedValue(new AppError('NETWORK_FAILURE', 'fail'));
+    await expect(withRetry(op, { maxAttempts: 999, initialBackoffMs: 1 })).rejects.toThrow();
     expect(op).toHaveBeenCalledTimes(MAX_RETRY_HARD_LIMIT);
   });
 });

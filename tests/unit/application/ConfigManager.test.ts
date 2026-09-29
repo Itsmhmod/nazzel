@@ -21,16 +21,16 @@ describe('ConfigManager', () => {
       writeJson: vi.fn().mockResolvedValue(undefined),
       appendLine: vi.fn(),
       readFile: vi.fn().mockResolvedValue('{}'),
-      realpath: vi.fn().mockResolvedValue('/test/config.json')
+      realpath: vi.fn().mockResolvedValue('/test/config.json'),
     };
     manager = new ConfigManager(mockFileSystem, '/test/config.json', '/test');
   });
 
   it('loads default config when file does not exist', async () => {
     mockFileSystem.exists.mockResolvedValue(false);
-    
+
     const config = await manager.load();
-    
+
     expect(config.concurrency).toBe(DEFAULT_CONFIG.concurrency);
     expect(config.outputDir).toBe(resolve(DEFAULT_CONFIG.outputDir));
     expect(mockFileSystem.readJson).not.toHaveBeenCalled();
@@ -39,9 +39,9 @@ describe('ConfigManager', () => {
   it('merges valid loaded config with defaults', async () => {
     mockFileSystem.exists.mockResolvedValue(true);
     mockFileSystem.readJson.mockResolvedValue({ concurrency: 4 });
-    
+
     const config = await manager.load();
-    
+
     expect(config.concurrency).toBe(4);
     expect(config.maxRetries).toBe(DEFAULT_CONFIG.maxRetries); // from defaults
   });
@@ -49,7 +49,7 @@ describe('ConfigManager', () => {
   it('throws CONFIG_INVALID for invalid config shapes', async () => {
     mockFileSystem.exists.mockResolvedValue(true);
     mockFileSystem.readJson.mockResolvedValue({ concurrency: -1 }); // Invalid: below min
-    
+
     await expect(manager.load()).rejects.toThrow(AppError);
     await expect(manager.load()).rejects.toMatchObject({ code: 'CONFIG_INVALID' });
   });
@@ -57,16 +57,16 @@ describe('ConfigManager', () => {
   it('normalizes paths to absolute', async () => {
     mockFileSystem.exists.mockResolvedValue(true);
     mockFileSystem.readJson.mockResolvedValue({ outputDir: './relative/path' });
-    
+
     const config = await manager.load();
-    
+
     expect(config.outputDir).toBe(resolve('./relative/path'));
   });
 
   it('atomically saves config', async () => {
     // Load first so it has defaults to merge against
     await manager.load();
-    
+
     const newConfig: INazzelConfig = {
       ...DEFAULT_CONFIG,
       concurrency: 5,
@@ -77,11 +77,11 @@ describe('ConfigManager', () => {
     expect(mockFileSystem.ensureDir).toHaveBeenCalledWith('/test');
     expect(mockFileSystem.writeJson).toHaveBeenCalledWith(
       expect.stringMatching(/^\/test\/config\.json\.tmp\.\d+$/),
-      expect.objectContaining({ concurrency: 5 })
+      expect.objectContaining({ concurrency: 5 }),
     );
     expect(mockFileSystem.move).toHaveBeenCalledWith(
       expect.stringMatching(/^\/test\/config\.json\.tmp\.\d+$/),
-      '/test/config.json'
+      '/test/config.json',
     );
   });
 
@@ -93,7 +93,7 @@ describe('ConfigManager', () => {
 
     await expect(manager.save(newConfig)).rejects.toThrow(AppError);
     expect(mockFileSystem.delete).toHaveBeenCalledWith(
-      expect.stringMatching(/^\/test\/config\.json\.tmp\.\d+$/)
+      expect.stringMatching(/^\/test\/config\.json\.tmp\.\d+$/),
     );
   });
 
@@ -106,7 +106,7 @@ describe('ConfigManager', () => {
     mockFileSystem.exists.mockResolvedValue(false);
     await manager.load();
     await manager.load();
-    
+
     // exists should only be called once if cached
     expect(mockFileSystem.exists).toHaveBeenCalledTimes(1);
     expect(manager.get()).toBeDefined();

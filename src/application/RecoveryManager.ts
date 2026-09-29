@@ -1,9 +1,6 @@
 import type { AppError } from '@nazzel/domain/errors.js';
 
-export type RecoveryAction = 
-  | 'NONE'
-  | 'WAIT_THEN_RETRY'
-  | 'UPDATE_DEP_THEN_RETRY';
+export type RecoveryAction = 'NONE' | 'WAIT_THEN_RETRY' | 'UPDATE_DEP_THEN_RETRY';
 
 export interface RecoveryPlan {
   readonly action: RecoveryAction;
@@ -25,13 +22,13 @@ export class RecoveryManager {
    * Does NOT execute the recovery itself.
    */
   evaluateError(
-    downloadId: string, 
-    error: AppError, 
-    configMaxRetries: number, 
-    configBackoffMs: number
+    downloadId: string,
+    error: AppError,
+    configMaxRetries: number,
+    configBackoffMs: number,
   ): RecoveryPlan {
     const budget = this.getOrCreateBudget(downloadId, configBackoffMs);
-    
+
     if (!error.recoverable) {
       return this.createNonePlan(budget, configMaxRetries);
     }

@@ -26,14 +26,20 @@ describe('YtDlpEngine', () => {
           duration: 100,
           formats: [
             { format_id: '137', ext: 'mp4', format_note: '1080p', vcodec: 'avc1', acodec: 'none' },
-            { format_id: '140', ext: 'm4a', format_note: 'audio only', vcodec: 'none', acodec: 'aac' },
-          ]
+            {
+              format_id: '140',
+              ext: 'm4a',
+              format_note: 'audio only',
+              vcodec: 'none',
+              acodec: 'aac',
+            },
+          ],
         }),
         stderr: '',
       });
 
       const info = await engine.analyze('https://test.com');
-      
+
       expect(info.id).toBe('123');
       expect(info.title).toBe('Test Video');
       expect(info.duration).toBe(100);
@@ -50,7 +56,7 @@ describe('YtDlpEngine', () => {
       });
 
       await expect(engine.analyze('https://test.com')).rejects.toThrowError(
-        expect.objectContaining({ code: 'EXTRACTOR_FAILURE' })
+        expect.objectContaining({ code: 'EXTRACTOR_FAILURE' }),
       );
     });
     it('passes jsRuntimeBin explicitly when provided', async () => {
@@ -62,10 +68,12 @@ describe('YtDlpEngine', () => {
 
       const explicitEngine = new YtDlpEngine(runner, 'yt-dlp', undefined, '/path/to/deno');
       await explicitEngine.analyze('https://test.com');
-      
-      expect(runner.run).toHaveBeenCalledWith(expect.objectContaining({
-        args: expect.arrayContaining(['--js-runtimes', 'deno:/path/to/deno'])
-      }));
+
+      expect(runner.run).toHaveBeenCalledWith(
+        expect.objectContaining({
+          args: expect.arrayContaining(['--js-runtimes', 'deno:/path/to/deno']),
+        }),
+      );
     });
   });
 });

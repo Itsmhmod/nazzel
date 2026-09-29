@@ -24,5 +24,7 @@ export interface IDependencyManager {
   /**
    * Installs all missing managed dependencies.
    */
-  installMissing(onProgress?: (name: string, downloaded: number, total: number | undefined) => void): Promise<boolean>;
+  installMissing(
+    onProgress?: (name: string, downloaded: number, total: number | undefined) => void,
+  ): Promise<boolean>;
 }

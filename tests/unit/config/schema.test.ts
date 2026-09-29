@@ -29,9 +29,7 @@ describe('parseConfig', () => {
   });
 
   it('rejects unknown keys (strict mode)', () => {
-    expect(() =>
-      parseConfig({ ...validConfig, unknownKey: 'oops' }),
-    ).toThrow();
+    expect(() => parseConfig({ ...validConfig, unknownKey: 'oops' })).toThrow();
   });
 
   it('rejects concurrency > 5', () => {

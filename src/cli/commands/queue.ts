@@ -8,7 +8,7 @@ export function queueCommand(): Command {
   const cancelCmd = new Command('cancel');
   cancelCmd.description('Cancel a specific queued or active download');
   cancelCmd.argument('<id>', 'ID of the download to cancel');
-  
+
   cancelCmd.action(async (id) => {
     const { orchestrator } = await createCompositionRoot();
     orchestrator.cancel(id);

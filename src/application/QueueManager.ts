@@ -30,7 +30,7 @@ export class QueueManager {
    * Enqueues a task for execution. FIFO order.
    */
   enqueue(id: string, task: TaskFunction): void {
-    if (this.queue.some(item => item.id === id)) {
+    if (this.queue.some((item) => item.id === id)) {
       throw new AppError('CONFIG_INVALID', `Task with id ${id} already exists in queue`);
     }
 
@@ -48,19 +48,21 @@ export class QueueManager {
    * Cancels a queued or active task by ID.
    */
   cancel(id: string): void {
-    const index = this.queue.findIndex(item => item.id === id);
+    const index = this.queue.findIndex((item) => item.id === id);
     if (index === -1) {
       return; // Not found, do nothing
     }
 
     const item = this.queue[index];
-    if (!item) { return; }
+    if (!item) {
+      return;
+    }
 
     if (item.status === 'queued') {
       // Remove from queue without executing
       this.queue.splice(index, 1);
     } else if (item.status === 'active') {
-      // Abort the running task. It is the task's responsibility to handle the 
+      // Abort the running task. It is the task's responsibility to handle the
       // AbortSignal and reject its promise, which will then trigger slot release.
       item.controller.abort();
     }
@@ -70,12 +72,12 @@ export class QueueManager {
    * Returns the current queue snapshot for reporting.
    */
   getSnapshot(): { id: string; status: 'queued' | 'active' }[] {
-    return this.queue.map(item => ({ id: item.id, status: item.status }));
+    return this.queue.map((item) => ({ id: item.id, status: item.status }));
   }
 
   private processQueue(): void {
     while (this.activeCount < this.concurrency) {
-      const nextItem = this.queue.find(item => item.status === 'queued');
+      const nextItem = this.queue.find((item) => item.status === 'queued');
       if (!nextItem) {
         break; // Nothing left to process
       }
@@ -95,7 +97,7 @@ export class QueueManager {
     } finally {
       // Always release slot and remove from queue
       this.activeCount--;
-      const index = this.queue.findIndex(i => i.id === item.id);
+      const index = this.queue.findIndex((i) => i.id === item.id);
       if (index !== -1) {
         this.queue.splice(index, 1);
       }

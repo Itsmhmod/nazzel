@@ -36,6 +36,9 @@ export const EXIT_CODES: Record<AppErrorCode | 'UNKNOWN' | 'CLI_INVALID_ARGS', n
 
   CONFIG_INVALID: 2,
   CONFIG_WRITE_FAILED: 2,
+
+  UPDATE_FAILED: 9,
+  UNINSTALL_FAILED: 9,
 };
 
 /**

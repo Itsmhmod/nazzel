@@ -27,13 +27,13 @@ describe('DownloadScreen Component', () => {
       downloaded: 45000000,
       total: 100000000,
       eta: 120,
-      phase: 'downloading' as const
+      phase: 'downloading' as const,
     };
-    
+
     const { lastFrame } = render(
-      <DownloadScreen title="My Cool Video" progress={progress as any} onCancel={vi.fn()} />
+      <DownloadScreen title="My Cool Video" progress={progress as any} onCancel={vi.fn()} />,
     );
-    
+
     const frame = lastFrame() || '';
     expect(frame).toContain('My Cool Video');
     expect(frame).toContain('45.5%');
@@ -48,22 +48,20 @@ describe('DownloadScreen Component', () => {
       downloaded: null,
       total: null,
       eta: null,
-      phase: 'merging' as const
+      phase: 'merging' as const,
     };
-    
+
     const { lastFrame } = render(
-      <DownloadScreen title="My Cool Video" progress={progress as any} onCancel={vi.fn()} />
+      <DownloadScreen title="My Cool Video" progress={progress as any} onCancel={vi.fn()} />,
     );
-    
+
     const frame = lastFrame() || '';
     expect(frame).toContain('Processing media (merging/converting)');
   });
 
   it('handles cancellation', () => {
     const cancelMock = vi.fn();
-    render(
-      <DownloadScreen progress={null} onCancel={cancelMock} />
-    );
+    render(<DownloadScreen progress={null} onCancel={cancelMock} />);
     triggerInput('q');
     expect(cancelMock).toHaveBeenCalled();
   });

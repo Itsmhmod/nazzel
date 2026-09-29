@@ -13,10 +13,12 @@ describe('GithubReleaseProvider', () => {
   it('getLatestRelease fetches correctly', async () => {
     const mockResponse = new EventEmitter() as any;
     mockResponse.statusCode = 200;
-    
+
     vi.mocked(https.get).mockImplementation((url, options, cb) => {
       const callback = typeof options === 'function' ? options : cb;
-      if (callback) {(callback as any)(mockResponse);}
+      if (callback) {
+        (callback as any)(mockResponse);
+      }
       const req = new EventEmitter() as any;
       req.end = vi.fn();
       return req;
@@ -33,10 +35,12 @@ describe('GithubReleaseProvider', () => {
   it('downloadChecksums parses checksums correctly', async () => {
     const mockResponse = new EventEmitter() as any;
     mockResponse.statusCode = 200;
-    
+
     vi.mocked(https.get).mockImplementation((url, options, cb) => {
       const callback = typeof options === 'function' ? options : cb;
-      if (callback) {(callback as any)(mockResponse);}
+      if (callback) {
+        (callback as any)(mockResponse);
+      }
       const req = new EventEmitter() as any;
       req.end = vi.fn();
       return req;

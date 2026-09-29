@@ -22,16 +22,16 @@ function triggerInput(input: string, key: any = {}) {
 describe('RecoveringScreen Component', () => {
   it('renders attempt counts and handles cancel', () => {
     const cancelMock = vi.fn();
-    
+
     const { lastFrame } = render(
-      <RecoveringScreen attempt={2} maxAttempts={5} onCancel={cancelMock} />
+      <RecoveringScreen attempt={2} maxAttempts={5} onCancel={cancelMock} />,
     );
-    
+
     const frame = lastFrame() || '';
     expect(frame).toContain('Attempt');
     expect(frame).toContain('2');
     expect(frame).toContain('5');
-    
+
     triggerInput('q');
     expect(cancelMock).toHaveBeenCalled();
   });

@@ -67,14 +67,16 @@ describe('DependencyManager', () => {
         return { exitCode: 1, stdout: '', stderr: '' };
       });
       const report = await manager.detectAll();
-      const ytdlp = report.deps.find(d => d.name === 'yt-dlp');
+      const ytdlp = report.deps.find((d) => d.name === 'yt-dlp');
       expect(ytdlp?.status).toBe('outdated');
       expect(ytdlp?.version).toBe('2022.10.10');
     });
 
     it('identifies ok dependencies', async () => {
       runner.run.mockImplementation(async (args) => {
-        if (args.bin.includes('yt-dlp')) {return { exitCode: 0, stdout: '2023.11.16', stderr: '' };}
+        if (args.bin.includes('yt-dlp')) {
+          return { exitCode: 0, stdout: '2023.11.16', stderr: '' };
+        }
         if (args.bin.includes('ffmpeg') || args.bin.includes('ffprobe')) {
           return { exitCode: 0, stdout: 'ffmpeg version 6.0', stderr: '' };
         }
@@ -88,28 +90,32 @@ describe('DependencyManager', () => {
       });
       const report = await manager.detectAll();
       expect(report.allOk).toBe(true);
-      expect(report.deps.every(d => d.status === 'ok')).toBe(true);
+      expect(report.deps.every((d) => d.status === 'ok')).toBe(true);
     });
 
     it('respects config overrides and reports source as config', async () => {
       (config as any).ytdlpPath = '/custom/yt-dlp';
       runner.run.mockImplementation(async (args) => {
-        if (args.bin === '/custom/yt-dlp') {return { exitCode: 0, stdout: '2023.11.16', stderr: '' };}
+        if (args.bin === '/custom/yt-dlp') {
+          return { exitCode: 0, stdout: '2023.11.16', stderr: '' };
+        }
         return { exitCode: 1, stdout: '', stderr: '' };
       });
       const report = await manager.detectAll();
-      const ytdlp = report.deps.find(d => d.name === 'yt-dlp');
+      const ytdlp = report.deps.find((d) => d.name === 'yt-dlp');
       expect(ytdlp?.source).toBe('config');
     });
 
     it('reports source as managed if located in managedDir', async () => {
       const managedBinDir = (manager as any).managedBinDir;
       runner.run.mockImplementation(async (args) => {
-        if (args.bin === path.join(managedBinDir, 'yt-dlp')) {return { exitCode: 0, stdout: '2023.11.16', stderr: '' };}
+        if (args.bin === path.join(managedBinDir, 'yt-dlp')) {
+          return { exitCode: 0, stdout: '2023.11.16', stderr: '' };
+        }
         return { exitCode: 1, stdout: '', stderr: '' };
       });
       const report = await manager.detectAll();
-      const ytdlp = report.deps.find(d => d.name === 'yt-dlp');
+      const ytdlp = report.deps.find((d) => d.name === 'yt-dlp');
       expect(ytdlp?.source).toBe('managed');
     });
   });
@@ -118,10 +124,14 @@ describe('DependencyManager', () => {
     it('refuses to update user-managed dependency', async () => {
       (config as any).ytdlpPath = '/custom/yt-dlp';
       runner.run.mockImplementation(async (args) => {
-        if (args.bin === '/custom/yt-dlp') {return { exitCode: 0, stdout: '2023.11.16', stderr: '' };}
+        if (args.bin === '/custom/yt-dlp') {
+          return { exitCode: 0, stdout: '2023.11.16', stderr: '' };
+        }
         return { exitCode: 1, stdout: '', stderr: '' };
       });
-      await expect(manager.update('yt-dlp')).rejects.toThrow('Cannot update user-managed dependency: yt-dlp (source: config)');
+      await expect(manager.update('yt-dlp')).rejects.toThrow(
+        'Cannot update user-managed dependency: yt-dlp (source: config)',
+      );
     });
   });
 
@@ -130,11 +140,11 @@ describe('DependencyManager', () => {
       vi.mocked(GithubReleaseProvider.getLatestRelease).mockResolvedValue({
         assets: [
           { name: 'yt-dlp_linux', browser_download_url: 'http://url/linux' },
-          { name: 'SHA2-256SUMS', browser_download_url: 'http://url/sha' }
-        ]
+          { name: 'SHA2-256SUMS', browser_download_url: 'http://url/sha' },
+        ],
       } as any);
       vi.mocked(GithubReleaseProvider.downloadChecksums).mockResolvedValue({
-        'yt-dlp_linux': 'abc123def'
+        'yt-dlp_linux': 'abc123def',
       });
     });
 
@@ -147,21 +157,27 @@ describe('DependencyManager', () => {
       expect(result).toBe(true);
 
       // Verify Downloader was called with checksum
-      expect(Downloader.downloadFile).toHaveBeenCalledWith(expect.objectContaining({
-        expectedSha256: 'abc123def'
-      }));
+      expect(Downloader.downloadFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedSha256: 'abc123def',
+        }),
+      );
 
       // Verify validation ran on temp bin
-      expect(runner.run).toHaveBeenCalledWith(expect.objectContaining({
-        args: ['--version']
-      }));
+      expect(runner.run).toHaveBeenCalledWith(
+        expect.objectContaining({
+          args: ['--version'],
+        }),
+      );
     });
 
     it('fails if execution validation fails, cleans temp bin', async () => {
       // Mock tempBin execution failure
       runner.run.mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' });
-      
-      await expect(manager.install('yt-dlp')).rejects.toThrow('Downloaded yt-dlp binary failed execution test.');
+
+      await expect(manager.install('yt-dlp')).rejects.toThrow(
+        'Downloaded yt-dlp binary failed execution test.',
+      );
 
       // Should delete the temp bin
       expect(fileSystem.delete).toHaveBeenCalled();
@@ -169,9 +185,11 @@ describe('DependencyManager', () => {
 
     it('fails if checksums not found for asset', async () => {
       vi.mocked(GithubReleaseProvider.downloadChecksums).mockResolvedValue({
-        'other_file': '123'
+        other_file: '123',
       });
-      await expect(manager.install('yt-dlp')).rejects.toThrow('No checksum found for yt-dlp binary');
+      await expect(manager.install('yt-dlp')).rejects.toThrow(
+        'No checksum found for yt-dlp binary',
+      );
     });
   });
 
@@ -182,14 +200,23 @@ describe('DependencyManager', () => {
       vi.mocked(GithubReleaseProvider.getLatestRelease).mockResolvedValue({
         assets: [
           // Linux asset (used when isWindows = false)
-          { name: 'ffmpeg-master-latest-linux64-gpl.tar.xz', browser_download_url: 'http://url/linux.tar.xz' },
+          {
+            name: 'ffmpeg-master-latest-linux64-gpl.tar.xz',
+            browser_download_url: 'http://url/linux.tar.xz',
+          },
           // Windows x64 gpl-shared asset (used when isWindows = true)
-          { name: 'ffmpeg-master-latest-win64-gpl-shared.zip', browser_download_url: 'http://url/win64.zip' },
+          {
+            name: 'ffmpeg-master-latest-win64-gpl-shared.zip',
+            browser_download_url: 'http://url/win64.zip',
+          },
           // Windows ARM64 gpl-shared asset
-          { name: 'ffmpeg-master-latest-winarm64-gpl-shared.zip', browser_download_url: 'http://url/winarm64.zip' },
+          {
+            name: 'ffmpeg-master-latest-winarm64-gpl-shared.zip',
+            browser_download_url: 'http://url/winarm64.zip',
+          },
           // BtbN's actual checksum file name
           { name: 'checksums.sha256', browser_download_url: 'http://url/checksums.sha256' },
-        ]
+        ],
       } as any);
       vi.mocked(GithubReleaseProvider.downloadChecksums).mockResolvedValue({
         'ffmpeg-master-latest-linux64-gpl.tar.xz': 'abc123def',
@@ -202,7 +229,9 @@ describe('DependencyManager', () => {
       (manager as any).isWindows = false;
       const originalPlatform = process.platform;
       Object.defineProperty(process, 'platform', { value: 'darwin' });
-      await expect(manager.install('ffmpeg')).rejects.toThrow('macOS managed FFmpeg installation is not supported by BtbN. Please install ffmpeg via Homebrew.');
+      await expect(manager.install('ffmpeg')).rejects.toThrow(
+        'macOS managed FFmpeg installation is not supported by BtbN. Please install ffmpeg via Homebrew.',
+      );
       Object.defineProperty(process, 'platform', { value: originalPlatform });
     });
 
@@ -210,10 +239,19 @@ describe('DependencyManager', () => {
       // Verify the correct checksum key is used for the Linux asset
       runner.run.mockImplementation(async (args) => {
         if (args.bin === 'tar' && args.args?.includes('-tf')) {
-          return { exitCode: 0, stdout: 'ffmpeg-master-latest-linux64-gpl/bin/ffmpeg\nffmpeg-master-latest-linux64-gpl/bin/ffprobe', stderr: '' };
+          return {
+            exitCode: 0,
+            stdout:
+              'ffmpeg-master-latest-linux64-gpl/bin/ffmpeg\nffmpeg-master-latest-linux64-gpl/bin/ffprobe',
+            stderr: '',
+          };
         }
-        if (args.bin === 'tar') {return { exitCode: 0, stdout: '', stderr: '' };}
-        if (args.args?.includes('-version')) {return { exitCode: 0, stdout: 'ffmpeg version 6.0', stderr: '' };}
+        if (args.bin === 'tar') {
+          return { exitCode: 0, stdout: '', stderr: '' };
+        }
+        if (args.args?.includes('-version')) {
+          return { exitCode: 0, stdout: 'ffmpeg version 6.0', stderr: '' };
+        }
         return { exitCode: 0, stdout: '', stderr: '' };
       });
       fileSystem.stat.mockResolvedValue({ isFile: true } as any);
@@ -221,15 +259,19 @@ describe('DependencyManager', () => {
       await manager.install('ffmpeg');
 
       // Should have downloaded with the sha256 from checksums.sha256 for the Linux asset
-      expect(Downloader.downloadFile).toHaveBeenCalledWith(expect.objectContaining({
-        expectedSha256: 'abc123def'
-      }));
+      expect(Downloader.downloadFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedSha256: 'abc123def',
+        }),
+      );
     });
 
     it('selects gpl-shared variant for Windows and uses its checksum', async () => {
       (manager as any).isWindows = true;
       runner.run.mockImplementation(async (args) => {
-        if (args.args?.includes('-version')) {return { exitCode: 0, stdout: 'ffmpeg version 6.0', stderr: '' };}
+        if (args.args?.includes('-version')) {
+          return { exitCode: 0, stdout: 'ffmpeg version 6.0', stderr: '' };
+        }
         return { exitCode: 0, stdout: '', stderr: '' };
       });
       fileSystem.stat.mockResolvedValue({ isFile: true } as any);
@@ -237,10 +279,12 @@ describe('DependencyManager', () => {
       await manager.install('ffmpeg');
 
       // Must download the gpl-shared zip with its checksum
-      expect(Downloader.downloadFile).toHaveBeenCalledWith(expect.objectContaining({
-        url: 'http://url/win64.zip',
-        expectedSha256: 'def456abc'
-      }));
+      expect(Downloader.downloadFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'http://url/win64.zip',
+          expectedSha256: 'def456abc',
+        }),
+      );
     });
 
     it('performs extraction and execution validation on Linux', async () => {
@@ -249,8 +293,12 @@ describe('DependencyManager', () => {
         if (args.bin === 'tar' && args.args?.includes('-tf')) {
           return { exitCode: 0, stdout: 'ffmpeg/bin/ffmpeg\nffmpeg/bin/ffprobe', stderr: '' };
         }
-        if (args.bin === 'tar') {return { exitCode: 0, stdout: '', stderr: '' };}
-        if (args.args?.includes('-version')) {return { exitCode: 0, stdout: 'ffmpeg version 6.0', stderr: '' };}
+        if (args.bin === 'tar') {
+          return { exitCode: 0, stdout: '', stderr: '' };
+        }
+        if (args.args?.includes('-version')) {
+          return { exitCode: 0, stdout: 'ffmpeg version 6.0', stderr: '' };
+        }
         return { exitCode: 0, stdout: '', stderr: '' }; // for chmod, mv
       });
       fileSystem.stat.mockResolvedValue({ isFile: true } as any);
@@ -259,14 +307,18 @@ describe('DependencyManager', () => {
       expect(result).toBe(true);
 
       // Verify tar was used
-      expect(runner.run).toHaveBeenCalledWith(expect.objectContaining({
-        bin: 'tar'
-      }));
+      expect(runner.run).toHaveBeenCalledWith(
+        expect.objectContaining({
+          bin: 'tar',
+        }),
+      );
 
       // Verify validation ran on temp bin
-      expect(runner.run).toHaveBeenCalledWith(expect.objectContaining({
-        args: ['-version']
-      }));
+      expect(runner.run).toHaveBeenCalledWith(
+        expect.objectContaining({
+          args: ['-version'],
+        }),
+      );
     });
 
     it('fails if tar extraction fails', async () => {
@@ -274,7 +326,9 @@ describe('DependencyManager', () => {
         if (args.bin === 'tar' && args.args?.includes('-tf')) {
           return { exitCode: 0, stdout: 'file', stderr: '' };
         }
-        if (args.bin === 'tar') {return { exitCode: 1, stdout: '', stderr: 'tar error' };}
+        if (args.bin === 'tar') {
+          return { exitCode: 1, stdout: '', stderr: 'tar error' };
+        }
         return { exitCode: 0, stdout: '', stderr: '' };
       });
       await expect(manager.install('ffmpeg')).rejects.toThrow('Tar extraction failed: tar error');
@@ -285,14 +339,20 @@ describe('DependencyManager', () => {
         if (args.bin === 'tar' && args.args?.includes('-tf')) {
           return { exitCode: 0, stdout: 'file', stderr: '' };
         }
-        if (args.bin === 'tar') {return { exitCode: 0, stdout: '', stderr: '' };}
-        if (args.args?.includes('-version')) {return { exitCode: 1, stdout: '', stderr: '' };}
+        if (args.bin === 'tar') {
+          return { exitCode: 0, stdout: '', stderr: '' };
+        }
+        if (args.args?.includes('-version')) {
+          return { exitCode: 1, stdout: '', stderr: '' };
+        }
         return { exitCode: 0, stdout: '', stderr: '' };
       });
       fileSystem.stat.mockResolvedValue({ isFile: true } as any);
-      
-      await expect(manager.install('ffmpeg')).rejects.toThrow('Downloaded FFmpeg binaries failed execution test.');
-      
+
+      await expect(manager.install('ffmpeg')).rejects.toThrow(
+        'Downloaded FFmpeg binaries failed execution test.',
+      );
+
       // Should cleanup temp archive and extract dir
       expect(fileSystem.delete).toHaveBeenCalled();
     });
@@ -305,7 +365,7 @@ describe('DependencyManager', () => {
         .mockResolvedValueOnce({ isFile: true } as any); // ffprobe.exe (never reached)
 
       await expect(manager.install('ffmpeg')).rejects.toThrow(
-        'Archive is missing required executable: ffmpeg.exe'
+        'Archive is missing required executable: ffmpeg.exe',
       );
       // Staging files must be cleaned up
       expect(fileSystem.delete).toHaveBeenCalled();
@@ -319,7 +379,7 @@ describe('DependencyManager', () => {
         .mockRejectedValueOnce(new Error('ENOENT')); // ffprobe.exe missing
 
       await expect(manager.install('ffmpeg')).rejects.toThrow(
-        'Archive is missing required executable: ffprobe.exe'
+        'Archive is missing required executable: ffprobe.exe',
       );
       expect(fileSystem.delete).toHaveBeenCalled();
     });
@@ -328,11 +388,11 @@ describe('DependencyManager', () => {
       (manager as any).isWindows = true;
       // First stat (ffmpeg) is a file, second (ffprobe) is a directory (isFile=false)
       fileSystem.stat
-        .mockResolvedValueOnce({ isFile: true } as any)  // ffmpeg.exe
+        .mockResolvedValueOnce({ isFile: true } as any) // ffmpeg.exe
         .mockResolvedValueOnce({ isFile: false } as any); // ffprobe.exe is a dir (malformed archive)
 
       await expect(manager.install('ffmpeg')).rejects.toThrow(
-        'Archive is missing required executable: ffprobe.exe'
+        'Archive is missing required executable: ffprobe.exe',
       );
       expect(fileSystem.delete).toHaveBeenCalled();
     });
@@ -344,8 +404,10 @@ describe('DependencyManager', () => {
         }
         return { exitCode: 0, stdout: '', stderr: '' };
       });
-      
-      await expect(manager.install('ffmpeg')).rejects.toThrow('Archive rejected due to unsafe path traversal in contents.');
+
+      await expect(manager.install('ffmpeg')).rejects.toThrow(
+        'Archive rejected due to unsafe path traversal in contents.',
+      );
       expect(fileSystem.delete).toHaveBeenCalled();
     });
 
@@ -353,38 +415,45 @@ describe('DependencyManager', () => {
       (manager as any).isWindows = true;
       // Simulate missing ffprobe — should clean up staging and NOT touch managed dir root files
       fileSystem.stat
-        .mockResolvedValueOnce({ isFile: true } as any)  // ffmpeg.exe staged
-        .mockRejectedValueOnce(new Error('ENOENT'));     // ffprobe.exe missing in archive
+        .mockResolvedValueOnce({ isFile: true } as any) // ffmpeg.exe staged
+        .mockRejectedValueOnce(new Error('ENOENT')); // ffprobe.exe missing in archive
 
       await expect(manager.install('ffmpeg')).rejects.toThrow(
-        'Archive is missing required executable: ffprobe.exe'
+        'Archive is missing required executable: ffprobe.exe',
       );
 
       // delete should only be called for staging (tempArchive + extractDir)
       // not for the managed root dir binaries
-      const deleteCalls = (fileSystem.delete as ReturnType<typeof vi.fn>).mock.calls.map((c: unknown[]) => c[0] as string);
+      const deleteCalls = (fileSystem.delete as ReturnType<typeof vi.fn>).mock.calls.map(
+        (c: unknown[]) => c[0] as string,
+      );
       const managedBinDir = (manager as any).managedBinDir;
-      const rootDeletes = deleteCalls.filter((p: string) => p === path.join(managedBinDir, 'ffmpeg.exe') || p === path.join(managedBinDir, 'ffprobe.exe'));
+      const rootDeletes = deleteCalls.filter(
+        (p: string) =>
+          p === path.join(managedBinDir, 'ffmpeg.exe') ||
+          p === path.join(managedBinDir, 'ffprobe.exe'),
+      );
       expect(rootDeletes).toHaveLength(0);
     });
   });
-
 
   describe('detect deno', () => {
     it('detects missing deno', async () => {
       runner.run.mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' });
       const report = await manager.detectAll();
-      const deno = report.deps.find(d => d.name === 'deno');
+      const deno = report.deps.find((d) => d.name === 'deno');
       expect(deno?.status).toBe('missing');
     });
 
     it('detects healthy deno >= 2.3.0', async () => {
       runner.run.mockImplementation(async (args) => {
-        if (args.bin === 'deno') {return { exitCode: 0, stdout: 'deno 2.3.0', stderr: '' };}
+        if (args.bin === 'deno') {
+          return { exitCode: 0, stdout: 'deno 2.3.0', stderr: '' };
+        }
         return { exitCode: 1, stdout: '', stderr: '' };
       });
       const report = await manager.detectAll();
-      const deno = report.deps.find(d => d.name === 'deno');
+      const deno = report.deps.find((d) => d.name === 'deno');
       expect(deno?.status).toBe('ok');
       expect(deno?.source).toBe('system');
       expect(deno?.version).toBe('2.3.0');
@@ -392,22 +461,26 @@ describe('DependencyManager', () => {
 
     it('detects outdated deno < 2.3.0', async () => {
       runner.run.mockImplementation(async (args) => {
-        if (args.bin === 'deno') {return { exitCode: 0, stdout: 'deno 1.40.0', stderr: '' };}
+        if (args.bin === 'deno') {
+          return { exitCode: 0, stdout: 'deno 1.40.0', stderr: '' };
+        }
         return { exitCode: 1, stdout: '', stderr: '' };
       });
       const report = await manager.detectAll();
-      const deno = report.deps.find(d => d.name === 'deno');
+      const deno = report.deps.find((d) => d.name === 'deno');
       expect(deno?.status).toBe('outdated');
       expect(deno?.version).toBe('1.40.0');
     });
 
     it('detects malformed deno version as broken', async () => {
       runner.run.mockImplementation(async (args) => {
-        if (args.bin === 'deno') {return { exitCode: 0, stdout: 'deno is broken', stderr: '' };}
+        if (args.bin === 'deno') {
+          return { exitCode: 0, stdout: 'deno is broken', stderr: '' };
+        }
         return { exitCode: 1, stdout: '', stderr: '' };
       });
       const report = await manager.detectAll();
-      const deno = report.deps.find(d => d.name === 'deno');
+      const deno = report.deps.find((d) => d.name === 'deno');
       expect(deno?.status).toBe('broken');
       expect(deno?.version).toBe('unknown');
     });
@@ -417,17 +490,19 @@ describe('DependencyManager', () => {
     it('detects missing node', async () => {
       runner.run.mockResolvedValue({ exitCode: 1, stdout: '', stderr: '' });
       const report = await manager.detectAll();
-      const node = report.deps.find(d => d.name === 'node');
+      const node = report.deps.find((d) => d.name === 'node');
       expect(node?.status).toBe('missing');
     });
 
     it('detects healthy node >= 22.0.0', async () => {
       runner.run.mockImplementation(async (args) => {
-        if (args.bin === 'node') {return { exitCode: 0, stdout: 'v22.1.0', stderr: '' };}
+        if (args.bin === 'node') {
+          return { exitCode: 0, stdout: 'v22.1.0', stderr: '' };
+        }
         return { exitCode: 1, stdout: '', stderr: '' };
       });
       const report = await manager.detectAll();
-      const node = report.deps.find(d => d.name === 'node');
+      const node = report.deps.find((d) => d.name === 'node');
       expect(node?.status).toBe('ok');
       expect(node?.source).toBe('system');
       expect(node?.version).toBe('22.1.0');
@@ -435,22 +510,26 @@ describe('DependencyManager', () => {
 
     it('detects outdated node < 22.0.0', async () => {
       runner.run.mockImplementation(async (args) => {
-        if (args.bin === 'node') {return { exitCode: 0, stdout: 'v20.9.0', stderr: '' };}
+        if (args.bin === 'node') {
+          return { exitCode: 0, stdout: 'v20.9.0', stderr: '' };
+        }
         return { exitCode: 1, stdout: '', stderr: '' };
       });
       const report = await manager.detectAll();
-      const node = report.deps.find(d => d.name === 'node');
+      const node = report.deps.find((d) => d.name === 'node');
       expect(node?.status).toBe('outdated');
       expect(node?.version).toBe('20.9.0');
     });
 
     it('detects malformed node version as broken', async () => {
       runner.run.mockImplementation(async (args) => {
-        if (args.bin === 'node') {return { exitCode: 0, stdout: 'node is here', stderr: '' };}
+        if (args.bin === 'node') {
+          return { exitCode: 0, stdout: 'node is here', stderr: '' };
+        }
         return { exitCode: 1, stdout: '', stderr: '' };
       });
       const report = await manager.detectAll();
-      const node = report.deps.find(d => d.name === 'node');
+      const node = report.deps.find((d) => d.name === 'node');
       expect(node?.status).toBe('broken');
       expect(node?.version).toBe('unknown');
     });
@@ -460,24 +539,42 @@ describe('DependencyManager', () => {
     beforeEach(() => {
       vi.mocked(GithubReleaseProvider.getLatestRelease).mockResolvedValue({
         assets: [
-          { name: 'deno-x86_64-unknown-linux-gnu.zip', browser_download_url: 'http://url/deno.zip' },
-          { name: 'deno-x86_64-unknown-linux-gnu.zip.sha256sum', browser_download_url: 'http://url/deno.sha' },
+          {
+            name: 'deno-x86_64-unknown-linux-gnu.zip',
+            browser_download_url: 'http://url/deno.zip',
+          },
+          {
+            name: 'deno-x86_64-unknown-linux-gnu.zip.sha256sum',
+            browser_download_url: 'http://url/deno.sha',
+          },
           { name: 'deno-x86_64-pc-windows-msvc.zip', browser_download_url: 'http://url/deno.zip' },
-          { name: 'deno-x86_64-pc-windows-msvc.zip.sha256sum', browser_download_url: 'http://url/deno.sha' },
+          {
+            name: 'deno-x86_64-pc-windows-msvc.zip.sha256sum',
+            browser_download_url: 'http://url/deno.sha',
+          },
           { name: 'deno-aarch64-pc-windows-msvc.zip', browser_download_url: 'http://url/deno.zip' },
-          { name: 'deno-aarch64-pc-windows-msvc.zip.sha256sum', browser_download_url: 'http://url/deno.sha' },
+          {
+            name: 'deno-aarch64-pc-windows-msvc.zip.sha256sum',
+            browser_download_url: 'http://url/deno.sha',
+          },
           { name: 'deno-x86_64-apple-darwin.zip', browser_download_url: 'http://url/deno.zip' },
-          { name: 'deno-x86_64-apple-darwin.zip.sha256sum', browser_download_url: 'http://url/deno.sha' },
+          {
+            name: 'deno-x86_64-apple-darwin.zip.sha256sum',
+            browser_download_url: 'http://url/deno.sha',
+          },
           { name: 'deno-aarch64-apple-darwin.zip', browser_download_url: 'http://url/deno.zip' },
-          { name: 'deno-aarch64-apple-darwin.zip.sha256sum', browser_download_url: 'http://url/deno.sha' }
-        ]
+          {
+            name: 'deno-aarch64-apple-darwin.zip.sha256sum',
+            browser_download_url: 'http://url/deno.sha',
+          },
+        ],
       } as any);
       vi.mocked(GithubReleaseProvider.downloadChecksums).mockResolvedValue({
         'deno-x86_64-unknown-linux-gnu.zip': 'abc123def',
         'deno-x86_64-pc-windows-msvc.zip': 'abc123def',
         'deno-aarch64-pc-windows-msvc.zip': 'abc123def',
         'deno-x86_64-apple-darwin.zip': 'abc123def',
-        'deno-aarch64-apple-darwin.zip': 'abc123def'
+        'deno-aarch64-apple-darwin.zip': 'abc123def',
       });
     });
 
@@ -493,15 +590,19 @@ describe('DependencyManager', () => {
       expect(result).toBe(true);
 
       // Verify Downloader was called
-      expect(Downloader.downloadFile).toHaveBeenCalledWith(expect.objectContaining({
-        url: 'http://url/deno.zip',
-        expectedSha256: 'abc123def'
-      }));
+      expect(Downloader.downloadFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'http://url/deno.zip',
+          expectedSha256: 'abc123def',
+        }),
+      );
 
       // Verify execution test
-      expect(runner.run).toHaveBeenCalledWith(expect.objectContaining({
-        args: ['--version']
-      }));
+      expect(runner.run).toHaveBeenCalledWith(
+        expect.objectContaining({
+          args: ['--version'],
+        }),
+      );
     });
   });
 });

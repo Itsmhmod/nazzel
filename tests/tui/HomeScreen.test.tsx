@@ -29,7 +29,12 @@ function triggerInput(input: string, key: any = {}) {
 describe('HomeScreen Component', () => {
   it('renders title and input', () => {
     const { lastFrame } = render(
-      <HomeScreen onSubmit={vi.fn()} onShowDiagnostics={vi.fn()} onShowHistory={vi.fn()} onQuit={vi.fn()} />
+      <HomeScreen
+        onSubmit={vi.fn()}
+        onShowDiagnostics={vi.fn()}
+        onShowHistory={vi.fn()}
+        onQuit={vi.fn()}
+      />,
     );
     const frame = lastFrame() || '';
     expect(frame).toContain('NAZZEL');
@@ -39,7 +44,12 @@ describe('HomeScreen Component', () => {
   it('allows quitting via q', () => {
     const quitMock = vi.fn();
     render(
-      <HomeScreen onSubmit={vi.fn()} onShowDiagnostics={vi.fn()} onShowHistory={vi.fn()} onQuit={quitMock} />
+      <HomeScreen
+        onSubmit={vi.fn()}
+        onShowDiagnostics={vi.fn()}
+        onShowHistory={vi.fn()}
+        onQuit={quitMock}
+      />,
     );
     triggerInput('q');
     expect(quitMock).toHaveBeenCalled();
@@ -48,7 +58,12 @@ describe('HomeScreen Component', () => {
   it('allows showing diagnostics via d', () => {
     const diagMock = vi.fn();
     render(
-      <HomeScreen onSubmit={vi.fn()} onShowDiagnostics={diagMock} onShowHistory={vi.fn()} onQuit={vi.fn()} />
+      <HomeScreen
+        onSubmit={vi.fn()}
+        onShowDiagnostics={diagMock}
+        onShowHistory={vi.fn()}
+        onQuit={vi.fn()}
+      />,
     );
     triggerInput('d');
     expect(diagMock).toHaveBeenCalled();
@@ -57,7 +72,12 @@ describe('HomeScreen Component', () => {
   it('allows showing history via h', () => {
     const histMock = vi.fn();
     render(
-      <HomeScreen onSubmit={vi.fn()} onShowDiagnostics={vi.fn()} onShowHistory={histMock} onQuit={vi.fn()} />
+      <HomeScreen
+        onSubmit={vi.fn()}
+        onShowDiagnostics={vi.fn()}
+        onShowHistory={histMock}
+        onQuit={vi.fn()}
+      />,
     );
     triggerInput('h');
     expect(histMock).toHaveBeenCalled();
@@ -67,7 +87,12 @@ describe('HomeScreen Component', () => {
     const quitMock = vi.fn();
     const submitMock = vi.fn();
     const { lastFrame } = render(
-      <HomeScreen onSubmit={submitMock} onShowDiagnostics={vi.fn()} onShowHistory={vi.fn()} onQuit={quitMock} />
+      <HomeScreen
+        onSubmit={submitMock}
+        onShowDiagnostics={vi.fn()}
+        onShowHistory={vi.fn()}
+        onQuit={quitMock}
+      />,
     );
     triggerInput('h'); // triggers history (which unmounts usually, but here just calls mock)
     // Wait, in HomeScreen, 'h' triggers onShowHistory if url is empty!
@@ -83,7 +108,12 @@ describe('HomeScreen Component', () => {
   it('submits valid URL on enter', () => {
     const submitMock = vi.fn();
     render(
-      <HomeScreen onSubmit={submitMock} onShowDiagnostics={vi.fn()} onShowHistory={vi.fn()} onQuit={vi.fn()} />
+      <HomeScreen
+        onSubmit={submitMock}
+        onShowDiagnostics={vi.fn()}
+        onShowHistory={vi.fn()}
+        onQuit={vi.fn()}
+      />,
     );
     triggerInput('x');
     triggerInput('', { return: true });

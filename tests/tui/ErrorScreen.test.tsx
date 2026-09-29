@@ -24,15 +24,15 @@ describe('ErrorScreen Component', () => {
   it('renders error details and handles quit', () => {
     const error = new AppError('CONFIG_INVALID', 'Something bad happened');
     const quitMock = vi.fn();
-    
+
     const { lastFrame } = render(
-      <ErrorScreen error={error} onQuit={quitMock} onShowDiagnostics={vi.fn()} />
+      <ErrorScreen error={error} onQuit={quitMock} onShowDiagnostics={vi.fn()} />,
     );
-    
+
     const frame = lastFrame() || '';
     expect(frame).toContain('Something bad happened');
     expect(frame).toContain('CONFIG_INVALID');
-    
+
     triggerInput('', { return: true }); // Enter
     expect(quitMock).toHaveBeenCalled();
   });

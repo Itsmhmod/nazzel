@@ -16,19 +16,19 @@ export async function downloadCommand(url: string | undefined, options: any) {
     }
 
     const { orchestrator, eventBus } = await createCompositionRoot();
-    
+
     // Output NDJSON to stdout
     eventBus.subscribe((event) => {
       process.stdout.write(JSON.stringify(event) + '\n');
     });
 
     const downloadId = 'dl-' + Date.now().toString(36);
-    
+
     const request: IDownloadRequest = {
       url,
       formatId: options.format,
       audioOnly: options.audioOnly,
-      outputDir: options.output
+      outputDir: options.output,
     };
 
     return new Promise<void>((resolve, reject) => {
@@ -49,7 +49,6 @@ export async function downloadCommand(url: string | undefined, options: any) {
       // In a real CLI, we might analyze it. For now, just queue it.
       orchestrator.download(request, downloadId, 'Metadata Resolution Pending');
     });
-
   } else {
     // TUI Mode (Phase 4)
     initLogger({ level: 'error', tui: true });
@@ -66,9 +65,11 @@ export async function downloadCommand(url: string | undefined, options: any) {
 
       const { waitUntilExit } = render(React.createElement(App, { deps, initialUrl: url }));
 
-      waitUntilExit().then(() => {
-        resolve();
-      }).catch(reject);
+      waitUntilExit()
+        .then(() => {
+          resolve();
+        })
+        .catch(reject);
     });
   }
 }

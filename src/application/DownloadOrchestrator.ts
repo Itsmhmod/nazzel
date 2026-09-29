@@ -21,7 +21,7 @@ export class DownloadOrchestrator {
     private readonly historyManager: HistoryManager,
     private readonly configManager: ConfigManager,
     private readonly dependencyManager: IDependencyManager,
-    private readonly fileSystem: IFileSystem
+    private readonly fileSystem: IFileSystem,
   ) {}
 
   /**
@@ -38,7 +38,10 @@ export class DownloadOrchestrator {
       if (error.name === 'AbortError' || controller.signal.aborted) {
         throw new AppError('CANCELLED', 'Analysis aborted');
       }
-      const appError = error instanceof AppError ? error : new AppError('EXTRACTOR_FAILURE', error.message, { cause: error });
+      const appError =
+        error instanceof AppError
+          ? error
+          : new AppError('EXTRACTOR_FAILURE', error.message, { cause: error });
       throw appError;
     } finally {
       this.activeAnalyses.delete(downloadId);
@@ -48,9 +51,13 @@ export class DownloadOrchestrator {
   /**
    * Queues a download request for execution based on concurrency limits.
    */
-  download(request: IDownloadRequest, downloadId: string, metadataTitle: string = 'Unknown Title'): void {
+  download(
+    request: IDownloadRequest,
+    downloadId: string,
+    metadataTitle: string = 'Unknown Title',
+  ): void {
     this.eventBus.emit({ type: 'DOWNLOAD_QUEUED', downloadId, url: request.url });
-    
+
     this.queueManager.enqueue(downloadId, async (signal: AbortSignal) => {
       await this.executeDownloadLifecycle(request, downloadId, signal, metadataTitle);
     });
@@ -67,44 +74,48 @@ export class DownloadOrchestrator {
   }
 
   private async executeDownloadLifecycle(
-    request: IDownloadRequest, 
-    downloadId: string, 
+    request: IDownloadRequest,
+    downloadId: string,
     signal: AbortSignal,
-    title: string
+    title: string,
   ): Promise<void> {
     const config = this.configManager.get();
     let activeFile: string | undefined = undefined;
     let finalOutputSeen = false;
-    
+
     // Validate inputs
     validateUrl(request.url);
-    if (request.formatId) { validateFormatId(request.formatId); }
-    if (request.outputDir) { validateOutputDir(request.outputDir); }
+    if (request.formatId) {
+      validateFormatId(request.formatId);
+    }
+    if (request.outputDir) {
+      validateOutputDir(request.outputDir);
+    }
 
     while (!signal.aborted) {
       this.eventBus.emit({ type: 'DOWNLOAD_STARTED', downloadId, url: request.url, title });
-      
+
       try {
         const engineRequest: IDownloadRequest = {
           ...request,
           formatId: request.formatId || config.preferredFormat,
-          outputDir: request.outputDir || config.outputDir
+          outputDir: request.outputDir || config.outputDir,
         };
 
         const generator = this.mediaEngine.download(engineRequest, downloadId, signal);
-        
+
         let finalResult: IDownloadResult | undefined;
 
         // Manually iterate to extract both yielded progress and the final returned result
         while (true) {
           const { value, done } = await generator.next();
-          
+
           if (done) {
             finalResult = value as IDownloadResult;
             finalOutputSeen = true;
             break;
           }
-          
+
           if (value && (value as any).activeFile) {
             activeFile = (value as any).activeFile;
           }
@@ -121,7 +132,7 @@ export class DownloadOrchestrator {
 
         // Success
         this.eventBus.emit({ type: 'DOWNLOAD_COMPLETED', result: finalResult });
-        
+
         await this.historyManager.append({
           id: downloadId,
           timestamp: new Date().toISOString(),
@@ -131,57 +142,64 @@ export class DownloadOrchestrator {
           filePath: finalResult.filePath,
           duration: finalResult.duration,
           fileSize: finalResult.fileSize,
-          status: 'completed'
+          status: 'completed',
         });
 
         return; // Exit retry loop
-        
       } catch (error: any) {
         if (signal.aborted || (error && error.code === 'CANCELLED')) {
-           await this.cleanupPartialFiles(activeFile, finalOutputSeen);
-           this.eventBus.emit({ type: 'DOWNLOAD_CANCELLED', downloadId });
-           await this.historyManager.append({
-             id: downloadId,
-             timestamp: new Date().toISOString(),
-             url: request.url,
-             title,
-             formatId: request.formatId || 'best',
-             filePath: '',
-             duration: null,
-             fileSize: 0,
-             status: 'cancelled'
-           });
-           return;
+          await this.cleanupPartialFiles(activeFile, finalOutputSeen);
+          this.eventBus.emit({ type: 'DOWNLOAD_CANCELLED', downloadId });
+          await this.historyManager.append({
+            id: downloadId,
+            timestamp: new Date().toISOString(),
+            url: request.url,
+            title,
+            formatId: request.formatId || 'best',
+            filePath: '',
+            duration: null,
+            fileSize: 0,
+            status: 'cancelled',
+          });
+          return;
         }
 
-        const appError = error instanceof AppError ? error : new AppError('PROCESS_CRASH', error.message, { cause: error });
-        const plan = this.recoveryManager.evaluateError(downloadId, appError, config.maxRetries, config.retryBackoffMs);
+        const appError =
+          error instanceof AppError
+            ? error
+            : new AppError('PROCESS_CRASH', error.message, { cause: error });
+        const plan = this.recoveryManager.evaluateError(
+          downloadId,
+          appError,
+          config.maxRetries,
+          config.retryBackoffMs,
+        );
 
         if (plan.action === 'NONE') {
           await this.cleanupPartialFiles(activeFile, finalOutputSeen);
           this.eventBus.emit({ type: 'DOWNLOAD_FAILED', downloadId, error: appError });
           await this.historyManager.append({
-             id: downloadId,
-             timestamp: new Date().toISOString(),
-             url: request.url,
-             title,
-             formatId: request.formatId || 'best',
-             filePath: '',
-             duration: null,
-             fileSize: 0,
-             status: 'failed',
-             failureCode: appError.code
-           });
-          return; 
+            id: downloadId,
+            timestamp: new Date().toISOString(),
+            url: request.url,
+            title,
+            formatId: request.formatId || 'best',
+            filePath: '',
+            duration: null,
+            fileSize: 0,
+            status: 'failed',
+            failureCode: appError.code,
+          });
+          return;
         }
 
         // Recover
         this.eventBus.emit({
-          type: 'RECOVERY_STARTED', 
-          downloadId, 
-          attempt: plan.attempt, 
+          type: 'RECOVERY_STARTED',
+          downloadId,
+          attempt: plan.attempt,
           maxAttempts: plan.maxAttempts,
-          errorCode: appError.code
+          errorCode: appError.code,
         });
 
         if (plan.action === 'UPDATE_DEP_THEN_RETRY') {
@@ -204,7 +222,7 @@ export class DownloadOrchestrator {
               duration: null,
               fileSize: 0,
               status: 'failed',
-              failureCode: appError.code
+              failureCode: appError.code,
             });
             return;
           }
@@ -225,9 +243,14 @@ export class DownloadOrchestrator {
     }
   }
 
-  private async cleanupPartialFiles(activeFile: string | undefined, finalOutputSeen: boolean): Promise<void> {
-    if (!activeFile) { return; }
-    
+  private async cleanupPartialFiles(
+    activeFile: string | undefined,
+    finalOutputSeen: boolean,
+  ): Promise<void> {
+    if (!activeFile) {
+      return;
+    }
+
     // We only clean up `.part` and `.ytdl` of the active file, and the file itself if it's explicitly temporary or not finalized.
     // If we have seen the final output, the activeFile is the finalized media. Do NOT delete it on verification failure.
     if (!finalOutputSeen || activeFile.endsWith('.part') || activeFile.endsWith('.ytdl')) {

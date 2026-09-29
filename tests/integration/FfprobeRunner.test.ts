@@ -10,7 +10,10 @@ describe('FfprobeRunner Integration', () => {
   let fixtureData: string;
 
   beforeEach(async () => {
-    fixtureData = await fs.readFile(path.join(__dirname, '../fixtures/ffprobe-responses/video.json'), 'utf-8');
+    fixtureData = await fs.readFile(
+      path.join(__dirname, '../fixtures/ffprobe-responses/video.json'),
+      'utf-8',
+    );
     mockRunner = {
       run: vi.fn().mockResolvedValue({ exitCode: 0, stdout: fixtureData, stderr: '' }),
       spawn: vi.fn(),
@@ -20,12 +23,12 @@ describe('FfprobeRunner Integration', () => {
 
   it('correctly probes a media file using real fixture data', async () => {
     const result = await runner.probe('fake-file.mp4');
-    
+
     expect(result.formatName).toBe('mp4');
     expect(result.duration).toBe(120.5);
     expect(result.size).toBe(20500000);
     expect(result.bitRate).toBe(1332000);
-    
+
     expect(result.streams.length).toBe(2);
     expect(result.streams[0]?.codecType).toBe('video');
     expect(result.streams[0]?.codecName).toBe('h264');

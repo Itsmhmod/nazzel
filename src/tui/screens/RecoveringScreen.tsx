@@ -19,24 +19,22 @@ export function RecoveringScreen({ attempt, maxAttempts, onCancel }: RecoveringS
   });
 
   return (
-    <Layout 
+    <Layout
       title="RECOVERING"
       subtitle="Retrying download"
-      footer={
-        <KeyHint
-          keys={[
-            { key: 'Esc/q', label: 'Cancel' },
-          ]}
-        />
-      }
+      footer={<KeyHint keys={[{ key: 'Esc/q', label: 'Cancel' }]} />}
     >
       <Box paddingX={2} marginY={1}>
         <Alert type="warning" title="Recovering Download...">
           <Box>
             <Text color={theme.text}>Attempt </Text>
-            <Text color={theme.warning} bold>{attempt}</Text>
+            <Text color={theme.warning} bold>
+              {attempt}
+            </Text>
             <Text color={theme.text}> of </Text>
-            <Text color={theme.warning} bold>{maxAttempts}</Text>
+            <Text color={theme.warning} bold>
+              {maxAttempts}
+            </Text>
           </Box>
           <Text color={theme.muted}>Retrying in background...</Text>
         </Alert>
