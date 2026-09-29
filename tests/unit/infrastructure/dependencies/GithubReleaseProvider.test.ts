@@ -1,57 +1,52 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GithubReleaseProvider } from '../../../../src/infrastructure/dependencies/GithubReleaseProvider.js';
-import * as https from 'https';
-import { EventEmitter } from 'events';
 
-vi.mock('https');
+// GithubReleaseProvider uses globalThis.fetch — mock it directly.
+const mockFetch = vi.fn();
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  vi.stubGlobal('fetch', mockFetch);
+});
 
 describe('GithubReleaseProvider', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-  });
-
   it('getLatestRelease fetches correctly', async () => {
-    const mockResponse = new EventEmitter() as any;
-    mockResponse.statusCode = 200;
-
-    vi.mocked(https.get).mockImplementation((url, options, cb) => {
-      const callback = typeof options === 'function' ? options : cb;
-      if (callback) {
-        (callback as any)(mockResponse);
-      }
-      const req = new EventEmitter() as any;
-      req.end = vi.fn();
-      return req;
+    const payload = { tag_name: 'v1.0.0', assets: [], prerelease: false, draft: false };
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => payload,
     });
 
-    const promise = GithubReleaseProvider.getLatestRelease('owner/repo');
-    mockResponse.emit('data', Buffer.from(JSON.stringify({ tag_name: 'v1.0.0', assets: [] })));
-    mockResponse.emit('end');
-
-    const result = await promise;
+    const result = await GithubReleaseProvider.getLatestRelease('owner/repo');
     expect(result.tag_name).toBe('v1.0.0');
+    expect(mockFetch).toHaveBeenCalledOnce();
+    const [calledUrl] = mockFetch.mock.calls[0] as [string, ...unknown[]];
+    expect(calledUrl).toContain('api.github.com/repos/owner/repo/releases/latest');
   });
 
   it('downloadChecksums parses checksums correctly', async () => {
-    const mockResponse = new EventEmitter() as any;
-    mockResponse.statusCode = 200;
-
-    vi.mocked(https.get).mockImplementation((url, options, cb) => {
-      const callback = typeof options === 'function' ? options : cb;
-      if (callback) {
-        (callback as any)(mockResponse);
-      }
-      const req = new EventEmitter() as any;
-      req.end = vi.fn();
-      return req;
+    const body = 'abc123def  file1.zip\ndef456abc  file2.tar.xz\n';
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      text: async () => body,
     });
 
-    const promise = GithubReleaseProvider.downloadChecksums('http://url');
-    mockResponse.emit('data', Buffer.from('abc123def  file1.zip\ndef456abc  file2.tar.xz\n'));
-    mockResponse.emit('end');
-
-    const result = await promise;
+    const result = await GithubReleaseProvider.downloadChecksums('https://example.com/SHA256SUMS');
     expect(result['file1.zip']).toBe('abc123def');
     expect(result['file2.tar.xz']).toBe('def456abc');
+  });
+
+  it('getLatestRelease throws on non-200', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 404,
+      json: async () => ({}),
+    });
+
+    await expect(GithubReleaseProvider.getLatestRelease('owner/repo')).rejects.toMatchObject({
+      code: 'NETWORK_FAILURE',
+    });
   });
 });

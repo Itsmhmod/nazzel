@@ -1,71 +1,75 @@
-import * as https from 'https';
-import * as http from 'http';
 import * as fs from 'fs';
 import * as crypto from 'crypto';
-import { AppError } from '@nazzel/domain/errors.js';
+import * as https from 'https';
+import * as http from 'http';
 import { URL } from 'url';
+import { AppError } from '@nazzel/domain/errors.js';
 
 export interface DownloadOptions {
   url: string;
   destination: string;
   expectedSha256?: string | undefined;
-  onProgress?: ((downloaded: number, total: number | undefined) => void) | undefined;
-  signal?: AbortSignal;
+  timeoutMs?: number | undefined;
+  onProgress?: ((downloaded: number, total: number) => void) | undefined;
 }
 
 export class Downloader {
   static async downloadFile(options: DownloadOptions): Promise<void> {
+    const { url, destination, expectedSha256, timeoutMs, onProgress } = options;
+
     return new Promise((resolve, reject) => {
-      const { url, destination, expectedSha256, onProgress, signal } = options;
-
-      const parsedUrl = new URL(url);
-      const reqFn = parsedUrl.protocol === 'http:' ? http.get : https.get;
-
       const hash = expectedSha256 ? crypto.createHash('sha256') : null;
       let downloaded = 0;
-      let total: number | undefined = undefined;
-
+      let total = 0;
       const writeStream = fs.createWriteStream(destination);
+      let isRejected = false;
+      let requestTimeout: NodeJS.Timeout | null = null;
 
-      const request = reqFn(
-        url,
-        {
-          headers: {
-            'User-Agent': 'NazzelDownloader/0.1.0',
-          },
-        },
-        (response) => {
-          if (response.statusCode === 301 || response.statusCode === 302) {
-            const redirectUrl = response.headers.location;
-            if (!redirectUrl) {
-              writeStream.close();
-              return reject(new AppError('NETWORK_FAILURE', 'Redirect without location header'));
-            }
-            writeStream.close();
-            // Follow redirect once
-            return resolve(
-              this.downloadFile({
-                ...options,
-                url: redirectUrl.startsWith('http')
-                  ? redirectUrl
-                  : new URL(redirectUrl, url).toString(),
-              }),
-            );
+      const cleanup = () => {
+        if (requestTimeout) {
+          clearTimeout(requestTimeout);
+        }
+        writeStream.destroy();
+        fs.unlink(destination, () => {});
+      };
+
+      const doReject = (err: Error) => {
+        if (isRejected) {
+          return;
+        }
+        isRejected = true;
+        cleanup();
+        reject(new AppError('NETWORK_FAILURE', err.message));
+      };
+
+      const execute = (requestUrl: string, redirectCount = 0) => {
+        if (redirectCount > 5) {
+          return doReject(new Error('Too many redirects'));
+        }
+
+        const parsedUrl = new URL(requestUrl);
+        const client = parsedUrl.protocol === 'https:' ? https : http;
+
+        const req = client.get(requestUrl, (res) => {
+          if (
+            res.statusCode &&
+            res.statusCode >= 300 &&
+            res.statusCode < 400 &&
+            res.headers.location
+          ) {
+            res.resume();
+            execute(res.headers.location, redirectCount + 1);
+            return;
           }
 
-          if (response.statusCode && response.statusCode >= 400) {
-            writeStream.close();
-            return reject(
-              new AppError('NETWORK_FAILURE', `HTTP Error ${response.statusCode} for ${url}`),
-            );
+          if (res.statusCode !== 200) {
+            res.resume();
+            return doReject(new Error(`HTTP ${res.statusCode}`));
           }
 
-          const contentLength = response.headers['content-length'];
-          if (contentLength) {
-            total = parseInt(contentLength, 10);
-          }
+          total = parseInt(res.headers['content-length'] || '0', 10);
 
-          response.on('data', (chunk: Buffer) => {
+          res.on('data', (chunk: Buffer) => {
             downloaded += chunk.length;
             if (hash) {
               hash.update(chunk);
@@ -73,58 +77,53 @@ export class Downloader {
             if (onProgress) {
               onProgress(downloaded, total);
             }
+            writeStream.write(chunk);
           });
 
-          response.pipe(writeStream);
+          res.on('end', () => {
+            writeStream.end(() => {
+              if (requestTimeout) {
+                clearTimeout(requestTimeout);
+              }
 
-          response.on('end', () => {
-            writeStream.close();
+              if (expectedSha256 && hash) {
+                const actualSha256 = hash.digest('hex');
+                if (actualSha256 !== expectedSha256) {
+                  fs.unlink(destination, () => {});
+                  return reject(
+                    new AppError(
+                      'VERIFY_FAILURE',
+                      `Checksum mismatch. Expected ${expectedSha256}, got ${actualSha256}`,
+                    ),
+                  );
+                }
+              }
+              resolve();
+            });
           });
-        },
-      );
 
-      request.on('error', (err) => {
-        writeStream.close();
-        fs.unlink(destination, () => {});
-        reject(new AppError('NETWORK_FAILURE', err.message));
-      });
+          res.on('error', (err) => {
+            doReject(err);
+          });
+        });
 
-      writeStream.on('finish', () => {
-        if (expectedSha256 && hash) {
-          const actualHash = hash.digest('hex');
-          if (actualHash.toLowerCase() !== expectedSha256.toLowerCase()) {
-            fs.unlink(destination, () => {});
-            return reject(
-              new AppError(
-                'VERIFY_FAILURE',
-                `Checksum mismatch. Expected ${expectedSha256}, got ${actualHash}`,
-              ),
-            );
-          }
+        req.on('error', (err) => {
+          doReject(err);
+        });
+
+        if (timeoutMs && redirectCount === 0) {
+          requestTimeout = setTimeout(() => {
+            req.destroy();
+            doReject(new Error('Request timed out'));
+          }, timeoutMs);
         }
-        resolve();
-      });
+      };
 
       writeStream.on('error', (err) => {
-        writeStream.close();
-        fs.unlink(destination, () => {});
-        reject(new AppError('FS_WRITE_FAILED', err.message));
+        doReject(err);
       });
 
-      if (signal) {
-        if (signal.aborted) {
-          request.destroy();
-          writeStream.close();
-          fs.unlink(destination, () => {});
-          return reject(new AppError('CANCELLED', 'Download aborted'));
-        }
-        signal.addEventListener('abort', () => {
-          request.destroy();
-          writeStream.close();
-          fs.unlink(destination, () => {});
-          reject(new AppError('CANCELLED', 'Download aborted'));
-        });
-      }
+      execute(url);
     });
   }
 }

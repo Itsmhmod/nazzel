@@ -6,7 +6,7 @@ export function updateCommand(): Command {
   cmd.description('Update Nazzel to the latest stable release');
 
   cmd.option('--check', 'Check for updates without installing');
-  cmd.option('--version <version>', 'Install a specific version');
+  cmd.option('--target-version <version>', 'Install a specific version');
 
   cmd.action(async (options) => {
     const lifecycle = new LifecycleManager();
@@ -28,7 +28,7 @@ export function updateCommand(): Command {
       }
 
       process.stdout.write(`Starting update...\n`);
-      const resultMsg = await lifecycle.update(options.version);
+      const resultMsg = await lifecycle.update(options.targetVersion);
       process.stdout.write(`\n✓ ${resultMsg}\n`);
     } catch (e: any) {
       process.stderr.write(`\n❌ Error: ${e.message}\n`);

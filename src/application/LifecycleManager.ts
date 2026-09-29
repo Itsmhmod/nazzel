@@ -175,6 +175,7 @@ export class LifecycleManager {
 
     try {
       // Get SHA256SUMS
+      process.stderr.write('Fetching SHA256SUMS...\n');
       const checksumsUrl = `https://github.com/${this.REPO}/releases/download/${release.tag_name}/SHA256SUMS`;
       let checksums: Record<string, string>;
       try {
@@ -192,11 +193,13 @@ export class LifecycleManager {
       }
 
       // Download
+      process.stderr.write('Downloading artifact: ' + asset.browser_download_url + '\n');
       await Downloader.downloadFile({
         url: asset.browser_download_url,
         destination: tmpExe,
         expectedSha256,
       });
+      process.stderr.write('Download complete. Performing file replacement...\n');
 
       if (platform !== 'windows') {
         fs.chmodSync(tmpExe, 0o755);
