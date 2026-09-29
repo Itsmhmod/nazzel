@@ -46,6 +46,12 @@ jobs:
             ext: .exe
             runner: windows-latest
             smoke_test_youtube: true
+          - target: windows-arm64
+            os: windows
+            arch: arm64
+            ext: .exe
+            runner: windows-11-arm
+            smoke_test_youtube: true
           - target: darwin-x64
             os: darwin
             arch: x64
@@ -304,6 +310,9 @@ jobs:
         include:
           - target: windows-x64
             runner: windows-latest
+            ext: .exe
+          - target: windows-arm64
+            runner: windows-11-arm
             ext: .exe
           - target: linux-x64
             runner: ubuntu-latest
