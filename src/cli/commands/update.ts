@@ -31,7 +31,7 @@ export function updateCommand(): Command {
       const resultMsg = await lifecycle.update(options.targetVersion);
       process.stdout.write(`\n✓ ${resultMsg}\n`);
     } catch (e: any) {
-      process.stderr.write(`\n❌ Error: ${e.message}\n`);
+      process.stderr.write(`\n❌ Error: ${e.stack || e.message}\n`);
       process.exitCode = 1;
     }
   });

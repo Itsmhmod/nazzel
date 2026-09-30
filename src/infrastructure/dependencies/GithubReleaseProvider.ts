@@ -19,8 +19,8 @@ export class GithubReleaseProvider {
       'User-Agent': 'NazzelDownloader/0.1.0',
       Accept: 'application/vnd.github.v3+json',
     };
-    if (process.env.GITHUB_TOKEN) {
-      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    if (process.env['GITHUB_TOKEN']) {
+      headers['Authorization'] = `token ${process.env['GITHUB_TOKEN']}`;
     }
     const response = await fetch(url, { headers });
 
@@ -45,8 +45,8 @@ export class GithubReleaseProvider {
       'User-Agent': 'NazzelDownloader/0.1.0',
       Accept: 'application/vnd.github.v3+json',
     };
-    if (process.env.GITHUB_TOKEN) {
-      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    if (process.env['GITHUB_TOKEN']) {
+      headers['Authorization'] = `token ${process.env['GITHUB_TOKEN']}`;
     }
     const response = await fetch(url, { headers });
 
@@ -66,8 +66,8 @@ export class GithubReleaseProvider {
     const headers: Record<string, string> = {
       'User-Agent': 'NazzelDownloader/0.1.0',
     };
-    if (process.env.GITHUB_TOKEN) {
-      headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
+    if (process.env['GITHUB_TOKEN']) {
+      headers['Authorization'] = `token ${process.env['GITHUB_TOKEN']}`;
     }
     const response = await fetch(url, { headers });
 
