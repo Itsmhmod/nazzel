@@ -95,6 +95,10 @@ export class YtDlpEngine implements IMediaEngine {
 
     args.push('--', request.url);
 
+    if (!this.ytdlpBin || this.ytdlpBin.trim() === '' || this.ytdlpBin === '.') {
+      throw new AppError('DEPENDENCY_MISSING', 'yt-dlp executable path is missing or invalid. Run `nazzel doctor` to repair.');
+    }
+
     const processArgs: any = {
       bin: this.ytdlpBin,
       args,

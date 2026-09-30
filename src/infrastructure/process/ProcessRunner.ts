@@ -6,6 +6,9 @@ import type { IProcessRunner } from '../../application/interfaces/IProcessRunner
 
 export class ProcessRunner implements IProcessRunner {
   async run(args: IProcessArgs): Promise<IProcessResult> {
+    if (!args.bin || args.bin.trim() === '' || args.bin === '.') {
+      throw AppError.from('PROCESS_CRASH', new Error('Executable path is missing or invalid'), { bin: args.bin });
+    }
     try {
       const execaOptions: any = { reject: false, shell: false };
       if (args.cwd !== undefined) {
@@ -43,6 +46,9 @@ export class ProcessRunner implements IProcessRunner {
   }
 
   async *spawn(args: IProcessArgs): AsyncGenerator<string, void, unknown> {
+    if (!args.bin || args.bin.trim() === '' || args.bin === '.') {
+      throw AppError.from('PROCESS_CRASH', new Error('Executable path is missing or invalid'), { bin: args.bin });
+    }
     const execaOptions: any = { reject: false, shell: false };
     if (args.cwd !== undefined) {
       execaOptions.cwd = args.cwd;

@@ -10,6 +10,10 @@ export class FfprobeRunner implements IFfprobeRunner {
   ) {}
 
   async probe(filePath: string, signal?: AbortSignal): Promise<IProbeResult> {
+    if (!this.ffprobeBin || this.ffprobeBin.trim() === '' || this.ffprobeBin === '.') {
+      throw new AppError('DEPENDENCY_MISSING', 'ffprobe executable path is missing or invalid. Run `nazzel doctor` to repair.');
+    }
+
     const processArgs: any = {
       bin: this.ffprobeBin,
       args: [

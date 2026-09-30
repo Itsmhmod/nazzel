@@ -111,10 +111,12 @@ export class LifecycleManager {
 
   private lock(): number {
     try {
-      return fs.openSync(
+      const fd = fs.openSync(
         this.lockPath,
         fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_WRONLY,
       );
+      fs.writeSync(fd, process.pid.toString());
+      return fd;
     } catch (e: any) {
       if (e.code === 'EEXIST') {
         throw new AppError(
@@ -253,8 +255,58 @@ export class LifecycleManager {
   }
 
   public async repair(depManager: DependencyManager): Promise<string[]> {
-    const fd = this.lock();
+    let fd: number;
     const repairs: string[] = [];
+
+    try {
+      fd = this.lock();
+    } catch (e: any) {
+      if (e.code === 'UPDATE_FAILED' && e.message.includes('Stale lock?')) {
+        let isRunning = true; // Assume active by default
+        try {
+          if (fs.existsSync(this.lockPath)) {
+            const lockContent = fs.readFileSync(this.lockPath, 'utf8').trim();
+            const pid = parseInt(lockContent, 10);
+            if (!isNaN(pid)) {
+              isRunning = false;
+              try {
+                process.kill(pid, 0);
+                isRunning = true;
+              } catch (killErr: any) {
+                if (killErr.code === 'EPERM') {
+                  isRunning = true;
+                }
+              }
+            } else {
+              // If empty or invalid, assume it crashed during creation (stale)
+              isRunning = false;
+            }
+          } else {
+            // File doesn't exist? Race condition, try to lock again.
+            isRunning = false;
+          }
+        } catch {
+          // If we can't read it or parse it, assume it's active to be safe
+        }
+
+        if (isRunning) {
+          throw e;
+        }
+
+        try {
+          if (fs.existsSync(this.lockPath)) {
+            fs.unlinkSync(this.lockPath);
+          }
+        } catch {
+          throw new AppError('UPDATE_FAILED', 'Failed to remove stale lock file.');
+        }
+
+        repairs.push('Cleared stale lock file.');
+        fd = this.lock();
+      } else {
+        throw e;
+      }
+    }
 
     try {
       // 1. Check for old backup files from updates and clean them up
@@ -270,10 +322,7 @@ export class LifecycleManager {
         }
       }
 
-      // 2. Clear stale lock if any (Wait, we have the lock now, so it wasn't stale.
-      // But if another process left a lock, `lock()` would throw. We can't really clear our own lock here except on exit.)
-
-      // 3. Ensure dependencies
+      // 2. Ensure dependencies
       try {
         await depManager.installMissing();
         repairs.push('Verified managed dependencies (yt-dlp, ffmpeg, ffprobe, deno).');

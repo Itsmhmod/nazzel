@@ -19,6 +19,8 @@ vi.mock('fs', async (importOriginal) => {
     chmodSync: vi.fn(),
     rmSync: vi.fn(),
     writeFileSync: vi.fn(),
+    readFileSync: vi.fn(),
+    writeSync: vi.fn(),
   };
 });
 
@@ -44,6 +46,7 @@ describe('LifecycleManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (fs.openSync as any).mockReturnValue(99);
+    vi.spyOn(fs, 'writeSync').mockReturnValue(0 as any);
   });
 
   it('detects dev environment correctly', () => {
@@ -177,5 +180,47 @@ describe('LifecycleManager', () => {
     } finally {
       Object.defineProperty(process, 'execPath', { value: originalExecPath, configurable: true });
     }
+  });
+
+  describe('repair locks', () => {
+    it('succeeds normally with no lock', async () => {
+      const m = new LifecycleManager();
+      const depManager = { installMissing: vi.fn() } as any;
+      (fs.openSync as any).mockReturnValue(99);
+      const res = await m.repair(depManager);
+      expect(res).toContain('Verified managed dependencies (yt-dlp, ffmpeg, ffprobe, deno).');
+    });
+
+    it('removes a stale lock', async () => {
+      const m = new LifecycleManager();
+      const depManager = { installMissing: vi.fn() } as any;
+      // First call throws EEXIST
+      (fs.openSync as any).mockImplementationOnce(() => {
+        const err: any = new Error('EEXIST'); err.code = 'EEXIST'; throw err;
+      });
+      // Second call succeeds
+      (fs.openSync as any).mockImplementationOnce(() => 99);
+      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+      vi.spyOn(fs, 'readFileSync').mockReturnValue('999999'); // non-existent PID
+      vi.spyOn(process, 'kill').mockImplementation(() => { throw new Error('ESRCH'); });
+
+      const res = await m.repair(depManager);
+      expect(res).toContain('Cleared stale lock file.');
+      expect(fs.unlinkSync).toHaveBeenCalledWith(expect.stringContaining('update.lock'));
+    });
+
+    it('does not remove an active lock', async () => {
+      const m = new LifecycleManager();
+      const depManager = { installMissing: vi.fn() } as any;
+      (fs.openSync as any).mockImplementationOnce(() => {
+        const err: any = new Error('EEXIST'); err.code = 'EEXIST'; throw err;
+      });
+      vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+      vi.spyOn(fs, 'readFileSync').mockReturnValue('1234');
+      vi.spyOn(process, 'kill').mockImplementation(() => true); // running
+
+      await expect(m.repair(depManager)).rejects.toThrow('Another update or lifecycle operation is currently in progress');
+      expect(fs.unlinkSync).not.toHaveBeenCalledWith(expect.stringContaining('update.lock'));
+    });
   });
 });
